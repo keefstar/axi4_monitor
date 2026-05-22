@@ -1,55 +1,52 @@
-# Prerequisites
-*.d
+# === General HDL / Simulation ===
+*.log
+*.vcd
+*.vpd
+*.key
+*.bak
+*~
+#vsim.wlf
+#transcript
 
-# Object files
-*.o
-*.ko
-*.obj
-*.elf
+# === Icarus Verilog & Verilator ===
+a.out
+*.vvp
+obj_dir/
 
-# Linker output
-*.ilk
-*.map
-*.exp
+# === Xilinx Vivado ===
+# It is better to ignore the entire project folder and use TCL scripts to rebuild
+# rather than committing the .xpr and massive /runs directories.
+*.jou
+*.log
+*.str
+.Xil/
+*.runs/
+*.srcs/
+*.gen/
+*.ip_user_files/
+*.hw/
+*.sim/
+*.cache/
 
-# Precompiled Headers
-*.gch
-*.pch
+# === Intel Quartus ===
+db/
+incremental_db/
+simulation/
+greybox_tmp/
+hc_output/
+*.rpt
+*.summary
+*.done
+*.qws
+*.pin
+*.pof
+*.sof
+*.jdi
 
-# Libraries
-*.lib
-*.a
-*.la
-*.lo
-
-# Shared objects (inc. Windows DLLs)
-*.dll
-*.so
-*.so.*
-*.dylib
-
-# Executables
-*.exe
-*.out
-*.app
-*.i*86
-*.x86_64
-*.hex
-
-# Debug files
-*.dSYM/
-*.su
-*.idb
-*.pdb
-
-# Kernel Module Compile Results
-*.mod*
-*.cmd
-.tmp_versions/
-modules.order
-Module.symvers
-Mkfile.old
-dkms.conf
-
-# debug information files
-*.dwo
+# === Common Tool Artifacts ===
+work/
+INCA_libs/
+csrc/
+simv*
+ucli.key
+DVEfiles/
