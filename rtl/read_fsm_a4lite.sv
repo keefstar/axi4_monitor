@@ -1,5 +1,4 @@
-
-
+import watchdog_pkg::*;
 module read_fsm_a4lite #(
     parameter TIMEOUT_COUNTER = 200,
     localparam TIMER_WIDTH = $clog2(TIMEOUT_COUNTER)
@@ -7,7 +6,7 @@ module read_fsm_a4lite #(
     input logic clk,
     input logic reset,
     input logic ARVALID, ARREADY, RVALID, RREADY, 
-    input logic rcvy_ack,
+    input logic [NUM_SOURCES - 1 : 0] rcvy_ack,
     output logic violation_notif,
     output logic inject_en, /* notify top level to substitute SLVERR */
     output logic regulate_en /* notify top-level to pull ARREADY low*/
@@ -21,8 +20,10 @@ typedef enum logic [2:0] {
     R_RECOVERY
 } state_t;
 
-logic ar_handshake = (ARVALID && ARREADY);
-logic r_handshake = (RVALID && RREADY);
+logic ar_handshake;
+assign ar_handshake = (ARVALID && ARREADY);
+logic r_handshake;
+assign r_handshake = (RVALID && RREADY);
 logic [TIMER_WIDTH - 1: 0] timer;
 state_t state, next_state;
 
@@ -52,7 +53,7 @@ always_comb begin
     end
     R_RECOVERY: begin
         regulate_en = 1'b1;
-        next_state = (rcvy_ack) ? IDLE : R_RECOVERY;
+        next_state = (rcvy_ack[READ_FAULT]) ? IDLE : R_RECOVERY;
     end
     default: next_state = IDLE;
     endcase
@@ -70,5 +71,4 @@ always_ff @ (posedge clk) begin
         else timer <= '0;
     end
 end
-
 endmodule

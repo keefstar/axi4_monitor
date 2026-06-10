@@ -16,6 +16,7 @@
  *
  * @output BRESP    Two-bit AXI4-Lite write-response code.
  */
+import watchdog_pkg::*;
 module write_fsm_a4lite #(
     parameter TIMEOUT_COUNTER = 200,
     localparam TIMER_WIDTH = $clog2(TIMEOUT_COUNTER)
@@ -23,7 +24,7 @@ module write_fsm_a4lite #(
     input logic clk,
     input logic reset,
     input logic AWREADY, AWVALID, WREADY, WVALID, WLAST, BREADY, BVALID, /* keep WLAST despite redundancy */
-    input logic rcvy_ack,
+    input logic [NUM_SOURCES - 1 : 0] rcvy_ack,
     output logic violation_notif,
     output logic inject_en, /* notify top level to substitute SLVERR */
     output logic regulate_en /* notify top-level to pull AWREADY low*/
@@ -40,9 +41,12 @@ typedef enum logic [2:0] {
 
 logic [TIMER_WIDTH - 1: 0] timer;
 /* Define handshake registers */ 
-logic aw_handshake = (AWREADY && AWVALID);
-logic w_handshake = (WREADY && WVALID && WLAST);
-logic b_handshake = (BREADY && BVALID);
+logic aw_handshake;
+assign aw_handshake = (AWREADY && AWVALID);
+logic w_handshake;
+assign w_handshake = (WREADY && WVALID && WLAST);
+logic b_handshake;
+assign b_handshake = (BREADY && BVALID);
  /* define state and next_state variables */
 state_t state, next_state;
 
@@ -73,7 +77,7 @@ always_comb begin
         end
         W_RECOVERY: begin
             regulate_en = 1'b1;
-            next_state = (rcvy_ack) ? IDLE : W_RECOVERY;
+            next_state = (rcvy_ack[WRITE_FAULT]) ? IDLE : W_RECOVERY;
         end
         default: next_state = IDLE;
     endcase
