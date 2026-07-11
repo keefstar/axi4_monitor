@@ -6,6 +6,13 @@ typedef enum int unsigned {
     READ_FAULT = 1
 } fault_src_e;
 
+typedef enum logic [1:0] {
+    AXI_RESP_OKAY  = 2'b00,
+    AXI_RESP_EXOKAY = 2'b01,
+    AXI_RESP_SLVERR = 2'b10,
+    AXI_RESP_DECERR = 2'b11
+} axi_resp_e;
+
  /* Total number of fault sources — must match NUM_SOURCES parameter */
 localparam int NUM_SOURCES = 2;
 

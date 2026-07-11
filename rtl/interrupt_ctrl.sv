@@ -1,39 +1,52 @@
-/* DEFINE SPEC */
-/* LEVEL-TRIGGERED, SOFTWARE-CLEARED INTERRUPT MECHANISM*/
-/* LOGIC DEFINED:
-violation_notif has each bit reserved for a specific fault (for AXI4-Lite, bit 0 is for a writeFSM interrupt
-status_reg records which fault fired; enable_reg is controlled by software to allow/mask specific faults
-pending is simply the answer to whether the processor should be bothered right now.
-*/
-import watchdog_pkg::*;
+/* LEVEL-TRIGGERED, SOFTWARE-CLEARED INTERRUPT MECHANISM
+ *
+ * CHANGED: import swapped from watchdog_pkg to firewall_pkg.
+ * CHANGED: NUM_SOURCES parameter removed — width now comes directly from
+ * firewall_pkg::NUM_FAULT_SOURCES (3 sources: READ_TIMEOUT,
+ * WRITE_DATA_TIMEOUT, WRITE_RESP_TIMEOUT).  A local parameter that could
+ * diverge from the package defeated the single-source-of-truth principle.
+ * Logic is otherwise identical — the mechanism is fully generic over N bits.
+ *
+ * How it works:
+ *   violation_notif  — one bit per fault source; pulsed by the scoreboard
+ *                      when a slot transitions into a fault/inject state.
+ *   status_reg       — sticky latch; records which faults have fired.
+ *   enable_reg       — software mask; a 0 bit suppresses that fault's IRQ.
+ *   pending          — status_reg & enable_reg; any set bit means the
+ *                      processor should be interrupted.
+ *   irq              — OR of pending; level-sensitive, stays high until
+ *                      software clears the relevant status bit.
+ *   clear_reg        — software writes 1 to clear a status bit (W1C).
+ *   rcvy_ack         — registered copy of clear_reg; fans out to scoreboard
+ *                      slots as force_free for the matching fault source.
+ */
+import firewall_pkg::*;
 
-module interrupt_ctrl #(
-    parameter NUM_SOURCES = 2
-
-)(
-    input logic clk, reset,
-    input logic [NUM_SOURCES - 1 : 0] violation_notif,
-    input logic [NUM_SOURCES -1: 0] enable_reg, clear_reg, 
-    output logic [NUM_SOURCES-1:0] rcvy_ack,
-    output logic irq 
+module interrupt_ctrl (
+    input  logic clk, reset,
+    input  logic [NUM_FAULT_SOURCES-1:0] violation_notif,
+    input  logic [NUM_FAULT_SOURCES-1:0] enable_reg,
+    input  logic [NUM_FAULT_SOURCES-1:0] clear_reg,
+    output logic [NUM_FAULT_SOURCES-1:0] rcvy_ack,
+    output logic irq
 );
 
-/* status_reg takes N input ires and records which ones fired (it takes violation_notif[N-1:0] and records which bits went high)*/
-logic [NUM_SOURCES-1:0] status_reg; /* AXI4-Lite bit 0 = write violation, bit 1 = read*/
-logic [NUM_SOURCES-1:0] pending; 
-assign pending = status_reg & enable_reg; /* A violation is pending only if it occurred AND software has not masked it.
-/* wire for processor; high when any unmasked violation is pending - level sensitive*/
-assign irq = |pending; 
+logic [NUM_FAULT_SOURCES-1:0] status_reg;
+logic [NUM_FAULT_SOURCES-1:0] pending;
 
-/* Sequential logic block */
-always_ff @ (posedge clk) begin
+assign pending = status_reg & enable_reg;
+assign irq     = |pending;
+
+always_ff @(posedge clk) begin
     if (reset) begin
         status_reg <= '0;
-        rcvy_ack <= '0;
+        rcvy_ack   <= '0;
     end else begin
-        /* Two parts to status_reg update; 1) erase bits after software updates it in clear_reg and 2) is record part; bring in any new violation bits that may have fired*/
+        /* Clear bits software acknowledged, then OR in any new faults
+         * that fired this cycle — both can happen in the same cycle. */
         status_reg <= (status_reg & ~clear_reg) | violation_notif;
-        rcvy_ack <= clear_reg;
+        rcvy_ack   <= clear_reg;
     end
 end
+
 endmodule
