@@ -7,8 +7,8 @@ import a4lite_pkg::*;
  */
 module rd_queue #(
     parameter int unsigned DEPTH = a4lite_pkg::DEPTH,
-    parameter int unsigned TIMER_WIDTH = a4lite_pkg::TIMER_WIDTH,
-    parameter logic [TIMER_WIDTH-1:0] TIMEOUT_CYCLES = a4lite_pkg::TIMEOUT_CYCLES
+    parameter int unsigned TIMER_WIDTH = a4lite_pkg::TIMEOUT_WIDTH,
+    parameter logic [TIMER_WIDTH-1:0] TIMEOUT_CYCLES = TIMER_WIDTH'(a4lite_pkg::TIMEOUT_COUNTER)
 )(
     input logic clk, rst_n,
     /* Interface connections */
