@@ -16,6 +16,22 @@ ar_beat_t ar;
 logic rvalid, rready;
 r_beat_t r;
 
+/* DATA FLOWS FROM MANAGER, THROUGH GUARD, THOTOUGH TO THE SUBORDINATE */
+/* UPSTREAM MEANS TOWARDS THE MANAGER. DOWNSTREAM MEANS THROUGH THE SUBORDINATE */
+/* GUARD IS TWO DEVICES IN ONE BOX. ON CABLE S, it appears to be a subordinate. the real amanger plugs in, sees something
+that accepts requests and returns responses */
+/* On cable M, it pretends to be a manager. The SUB plugs in, sees something issuin g requests and cant tell it isnt rela manage r*/
+/* m. names the cable, not the driver. */
+
+/* A port's role tells you the mask your module wears on that link; teh signal name tels you which mask drives it. if they match, you drive. if they don't you read */
+
+/* 
+m.awvalid → mask = manager; AWVALID is manager-driven → match → drive.
+m.bvalid → mask = manager; BVALID is subordinate-driven → mismatch → read.
+s.awvalid → mask = subordinate; AWVALID is manager-driven → mismatch → read.
+s.bvalid → mask = subordinate; BVALID is subordinate-driven → match → drive.
+*/
+
 /* Modports here create differnt views of an interface; specify a susbect of interface signals accessible to 1) manager, 2) subordinate, 3) uvm monitor */
 /* Directions are specified accordingly*/
 
@@ -27,6 +43,7 @@ r_beat_t r;
 - Recieves responses B and R.
 */
 /* The a4l_mgr modport makes the module connected through that view behave as a manager. In your design, that module is the guard. */
+/* whoever plugs in here as a4l_mgr will drive awvalid/aw, and receive awready." Your guard is that whoever */
 modport a4l_mgr (
     // Requests driven toward the subordinate
     output awvalid, aw,
