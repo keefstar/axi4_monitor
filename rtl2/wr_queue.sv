@@ -48,6 +48,12 @@ logic [TIMER_WIDTH - 1: 0] w_timer; /* manager owes sub W - wpair_state */
 logic aw_perm;
 assign aw_perm = (wpair_state == WPAIR_IDLE) && !full &&!epoch_clr && !flush;
 
+aw_beat_t aw_hold;
+always_ff @ (posedge clk or negedge rst_n) begin
+    if (!rst_n) aw_hold <= '0;
+    else if (aw_fire)aw_hold <= s.aw;
+end
+
 /* AW channel - Part 1 of admission */
 logic aw_fire, w_fire, pair_fire;
 /* Guard will hold AW from subordinate until pair completes */
@@ -58,13 +64,6 @@ assign m.awvalid = s.awvalid && aw_perm;
 assign s.awready = aw_perm;
 assign m.aw = aw_hold;
 assign aw_fire = s.awvalid && s.awready; 
-
-
-aw_beat_t aw_hold;
-always_ff @ (posedge clk or negedge rst_n) begin
-    if (!rst_n) aw_hold <= '0;
-    else if (aw_fire)aw_hold <= s.aw;
-end
 
 
 logic w_perm;
