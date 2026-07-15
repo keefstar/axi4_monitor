@@ -70,7 +70,7 @@ logic w_perm;
 assign w_perm = (wpair_state == WPAIR_AW_ONLY) && !epoch_clr;
 /* W channel */
 /* Recall constraint: writes are only accepted when in AW_ONLY (AW recieves first) */
-assign m.wvalid = s.wwalid && w_perm;
+assign m.wvalid = s.wvalid && w_perm;
 assign s.wready = m.wready && w_perm;
 assign m.w = s.w;
 assign w_fire = s.wvalid && s.wready;
