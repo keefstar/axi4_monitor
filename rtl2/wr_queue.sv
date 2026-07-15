@@ -46,6 +46,9 @@ logic [TIMER_WIDTH - 1: 0] b_timer; /* subordinate owes B - wr_state */
 logic [TIMER_WIDTH - 1: 0] w_timer; /* manager owes sub W - wpair_state */
 
 logic aw_perm;
+/* AW channel - Part 1 of admission */
+logic aw_fire, w_fire, pair_fire;
+
 assign aw_perm = (wpair_state == WPAIR_IDLE) && !full &&!epoch_clr && !flush;
 
 aw_beat_t aw_hold;
@@ -54,8 +57,7 @@ always_ff @ (posedge clk or negedge rst_n) begin
     else if (aw_fire) aw_hold <= s.aw;
 end
 
-/* AW channel - Part 1 of admission */
-logic aw_fire, w_fire, pair_fire;
+
 /* Guard will hold AW from subordinate until pair completes */
 /* reminder, whoever plugs in as a4l_mng will drive awvalid/aw and recieve awready*/
 /* confusion comment: s and m name the guards's two faces; so s.awvalid is AWVALID arriving at the subordinate face (somelese else drove it)
