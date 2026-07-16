@@ -62,18 +62,18 @@ end
 /* reminder, whoever plugs in as a4l_mng will drive awvalid/aw and recieve awready*/
 /* confusion comment: s and m name the guards's two faces; so s.awvalid is AWVALID arriving at the subordinate face (somelese else drove it)
 and m.awvalid is AWVALID leaving the mangaer face*/
-assign m.awvalid = s.awvalid && aw_perm;
+assign m.awvalid = w_perm && s.wvalid; /* sub recieves AW only when W is also ready */
 assign s.awready = aw_perm;
 assign m.aw = aw_hold;
 assign aw_fire = s.awvalid && s.awready; 
 
 
-logic w_perm;
+logic w_perm; /* have AW, waiting for data */
 assign w_perm = (wpair_state == WPAIR_AW_ONLY) && !epoch_clr;
 /* W channel */
 /* Recall constraint: writes are only accepted when in AW_ONLY (AW recieves first) */
-assign m.wvalid = s.wvalid && w_perm;
-assign s.wready = m.wready && w_perm;
+assign m.wvalid = w_perm && s.wvalid; /* same as AW transmissino ot sub; both halves given same cycle */
+assign s.wready = m.awready && m.wready && w_perm; 
 assign m.w = s.w;
 assign w_fire = s.wvalid && s.wready;
 assign pair_fire = w_fire;
@@ -200,6 +200,7 @@ conservative design choice is to use the interrupt controller to treat this as a
 
 SLVERR should be reserved, in the case of writes, for when we are waiting for a BREADY response from the manager
 and there is a timeout. 
+*/
 
 /* As a constriant:
 A write is admitted only when BOTH halves (AW, W) have arrived, and we make AW required to come first
