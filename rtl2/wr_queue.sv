@@ -57,6 +57,8 @@ always_ff @ (posedge clk or negedge rst_n) begin
     else if (aw_fire) aw_hold <= s.aw;
 end
 
+logic w_perm; /* have AW, waiting for data */
+assign w_perm = (wpair_state == WPAIR_AW_ONLY) && !epoch_clr;
 
 /* Guard will hold AW from subordinate until pair completes */
 /* reminder, whoever plugs in as a4l_mng will drive awvalid/aw and recieve awready*/
@@ -68,8 +70,7 @@ assign m.aw = aw_hold;
 assign aw_fire = s.awvalid && s.awready; 
 
 
-logic w_perm; /* have AW, waiting for data */
-assign w_perm = (wpair_state == WPAIR_AW_ONLY) && !epoch_clr;
+
 /* W channel */
 /* Recall constraint: writes are only accepted when in AW_ONLY (AW recieves first) */
 assign m.wvalid = w_perm && s.wvalid; /* same as AW transmissino ot sub; both halves given same cycle */
