@@ -32,13 +32,9 @@ logic [CNT_W - 1 : 0 ] outst_cnt; /* The number of reads for which the guard sti
 logic [CNT_W -  1 : 0] drain_cnt; /* umber of late real responses that are still expected but have not yet come back, for reads whose manager already accepted an injected SLVERR. */
 logic [TIMER_WIDTH - 1: 0] timer;
 
-/* State Defintions */
-typedef enum logic [1:0] {
-    RD_IDLE = 2'b00, /* no reads outstanding */
-    RD_TRACKING = 2'b01,
-    RD_INJECTING = 2'b10
-} rd_state_e;
+/* State Defintions (rd_state_e lives in a4lite_pkg so bind-based SVA can see it) */
 rd_state_e rd_state, rd_state_nxt;
+
 logic full;
 assign full = (outst_cnt == CNT_W'(DEPTH));
 

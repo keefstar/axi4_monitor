@@ -1,11 +1,30 @@
 
 /* SVA assertions for read_queue for AXI4-lite transactions */
 import a4lite_pkg::*;
-module rd_queue_sva(
+/* `bind` places this instance inside rd_queue's scope, but that does NOT give
+   it implicit visibility into rd_queue's internal (non-port) signals by name.
+   Every DUT signal an assertion below touches (outst_cnt, drain_cnt, rd_state,
+   timer_run, inject_fire, s, m) must be a port here and explicitly wired up in
+   the bind statement, since the RHS of each .port(net) is what gets resolved
+   in the target's scope. */
+module rd_queue_sva #(
+    parameter int unsigned DEPTH = a4lite_pkg::DEPTH
+)(
     input logic clk, rst_n,
     input logic epoch_clr, flush,
-    input logic timeout_pulse
+    input logic timeout_pulse,
+    input logic [$clog2(DEPTH+1)-1:0] outst_cnt,
+    input logic [$clog2(DEPTH+1)-1:0] drain_cnt,
+    input rd_state_e rd_state,
+    input logic timer_run,
+    input logic inject_fire,
+    /* Plain (unmodported) interface ports: this is a passive monitor, so it
+       only ever reads s/m, never drives them. */
+    axi4l_if s,
+    axi4l_if m
 );
+
+localparam int unsigned CNT_W = $clog2(DEPTH + 1);
 
 /* Assertion 1: if the guard is being erased, it mus tnot be done so if the manager is still owed responses (either real or injected SLVERR) */
 NO_CLEAR_WHILE_OWING_CHK : assert property ( 
@@ -54,10 +73,13 @@ endmodule : rd_queue_sva
 /* Bind into every rd_queue instance */
 /* bind, design module, assertion module, instnatiation name, design module variable)*/
 /* interfaces wo */
-bind rd_queue rd_queue_sva rd_sva (
+bind rd_queue rd_queue_sva #(.DEPTH(DEPTH)) rd_sva (
     .clk(clk), .rst_n(rst_n),
     .epoch_clr(epoch_clr), .flush(flush),
-    .timeout_pulse(timeout_pulse)
+    .timeout_pulse(timeout_pulse),
+    .outst_cnt(outst_cnt), .drain_cnt(drain_cnt),
+    .rd_state(rd_state), .timer_run(timer_run), .inject_fire(inject_fire),
+    .s(s), .m(m)
 );
 
 /*

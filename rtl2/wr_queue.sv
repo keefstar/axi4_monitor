@@ -25,20 +25,8 @@ logic [CNT_W-1:0] outst_nxt;
 logic full;
 assign full = (outst_cnt == CNT_W'(DEPTH));
 
-/* State definitions */
-typedef enum logic [1:0] {
-    WR_IDLE, /* no writes outstanding */
-    WR_TRACKING, /* head pointer alive, B-timer running */
-    WR_INJECTING /* B timed out; SLVERR presented */
-} wr_state_e;
+/* State definitions (wr_state_e, wpair_state_e live in a4lite_pkg so bind-based SVA can see them) */
 wr_state_e wr_state, wr_state_nxt;
-
-/* AW/W pair admission; no read analogue */
-typedef enum logic [1:0] {
-    WPAIR_IDLE, /* neither AW/W accepted */
-    WPAIR_AW_ONLY, /* AW accepted; waiting for W */
-    WPAIR_W_FAULT /* W never came; manager fault, interrupt only */
-} wpair_state_e;
 wpair_state_e wpair_state, wpair_state_nxt;
 
 /* Two timers for write */

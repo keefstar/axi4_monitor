@@ -54,6 +54,7 @@ typedef struct packed {
 } r_beat_t;
 
 /*************************************** INTERNAL GUARD STRUCTS ***************************************/
+
 /* Per entry tracking state in the ordered queues */
 typedef enum logic [1:0] {
     ENTRY_FREE = 2'b00, /* slot unoccupied */
@@ -69,6 +70,21 @@ typedef enum logic [1:0] {
     WPAIR_AW_ONLY = 2'b01, /* AW accepted, waiting on W */
     WPAIR_W_FAULT = 2'b10 /* W-side tiemout; write data parked/faulted*/
 } wpair_state_e;
+
+/* Read-path head FSM (rd_queue). Shared here (rather than declared locally
+   in rd_queue.sv) so bind-based SVA checkers can reference the type. */
+typedef enum logic [1:0] {
+    RD_IDLE = 2'b00, /* no reads outstanding */
+    RD_TRACKING = 2'b01,
+    RD_INJECTING = 2'b10
+} rd_state_e;
+
+/* Write-path head FSM (wr_queue). Shared for the same reason as rd_state_e. */
+typedef enum logic [1:0] {
+    WR_IDLE, /* no writes outstanding */
+    WR_TRACKING, /* head pointer alive, B-timer running */
+    WR_INJECTING /* B timed out; SLVERR presented */
+} wr_state_e;
 
 /* Top-level guard mode */
 typedef enum logic [1:0] {
