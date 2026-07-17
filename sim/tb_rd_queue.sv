@@ -47,7 +47,7 @@ endfunction
  *   wait_for_r()   blocks the calling test until one R beat has been
  *                  accepted, returning it in program order.
  */
- 
+
 logic [31:0] ar_q[$];
 r_beat_t     rx_q[$];
 
@@ -89,7 +89,7 @@ end
 initial begin
     up.rready = 1'b1;
     forever begin
-        @ (negedge clk);
+        @ (posedge clk);
         if (up.rvalid && up.rready) rx_q.push_back(up.r);
     end
 end
@@ -113,11 +113,13 @@ task automatic sub_set_resp_enable(input bit v);
     sub_resp_enable = v;
 endtask
 
-initial begin
+initial begin  //driver
     dn.arready = 1'b1;
+    forever begin @(negedge clk); dn.arready = sub_ar_ready; end
+end
+initial begin  //sampler
     forever begin
-        @ (negedge clk);
-        dn.arready = sub_ar_ready;
+        @(posedge clk);
         if (dn.arvalid && dn.arready) sub_pending_q.push_back(dn.ar.addr);
     end
 end
