@@ -12,6 +12,8 @@ NO_CLEAR_WHILE_OWING_CHK : assert property (
     @ (posedge clk) disable iff (!rst_n)
     /* antacedent/enabling condiiton - consequent/fulfilling condition */
     /* (|-> is for same cycle checks; |=> is for next cycle. if antacedent is true in cycle N, consequent must be in N + 1) */
+    /* if a variable is not included in a condition, its value is 'don't care'. */
+    /* eg: epoch_clr would not be checked at cycle N + 1 if using |=> */
     epoch_clr |-> (outst_cnt == '0)
 ) else $error("SVA: epoch_clr asserted with outst_cnt = %0d", outst_cnt);
 
@@ -25,14 +27,27 @@ IDLE_MEANS_NO_READS_CHK : assert property(
 NO_FORWARDING_GHOSTS_CHK: assert property (
     @ (posedge clk) disable iff (!rst_n)
     ((drain_cnt != 0)|-> !(s.rvalid && (rd_state == RD_TRACKING)))
-    else $error("SVA: forwarded while drain_cnt=%0d", drain_cnt)
-);
+) else $error("SVA: forwarded while drain_cnt=%0d", drain_cnt);
 
-DRAIN_OVERFLOW_CHK: property (
+DRAIN_OVERFLOW_CHK: assert property (
     @ (posedge clk) disable iff (!rst_n)
     (drain_cnt <= CNT_W'(DEPTH))
-    else $error("SVA: drain_cnt overflow: %0d", drain_cnt)
-);
+) else $error("SVA: drain_cnt overflow: %0d", drain_cnt);
+
+FREEZE_ON_REAL_RESP_CHK: assert property (
+    @ (posedge clk) disable iff (!rst_n)
+    (((m.rvalid && (drain_cnt == '0)) && (rd_state == RD_TRACKING)) |-> !timer_run)
+) else $error ("SVA: timer did not stop once the subordinate became ready to return read data");
+
+DRAIN_ONLY_ON_INJECTION_CHK: assert property (
+    @ (posedge clk) disable iff (!rst_n)
+    (drain_cnt > $past(drain_cnt)) |-> $past(inject_fire)
+) else $error ("SVA: drain count increased without an injector");
+
+INJECTING_SHOWS_SLVERR_CHK: assert property (
+    @(posedge clk) disable iff (!rst_n)
+    (rd_state == RD_INJECTING) |-> (s.rvalid && (s.r.resp == RESP_SLVERR))
+) else $error("SVA: INJECTING without SLVERR presented");
 
 endmodule : rd_queue_sva
 
