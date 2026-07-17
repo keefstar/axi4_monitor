@@ -22,6 +22,7 @@ axi4l_if dn(.clk(clk), .aresetn(rst_n)); /* guard.m <-> TB stub subordinate */
 logic epoch_clr, flush;
 logic timeout_pulse, busy, upstream_empty;
 
+/* read queue instantiation */
 rd_queue #(
     .DEPTH(TB_DEPTH), .TIMER_WIDTH(TB_TW), .TIMEOUT_CYCLES(TB_TIMEOUT) ) dut (
     .clk(clk), .rst_n(rst_n),
@@ -32,34 +33,35 @@ rd_queue #(
 /* acccounting for test passes/fails */
 int unsigned n_pass, n_fail;
 task automatic check (input bit cond, input string msg);
-    if (cond) n_pass++;
+    assert (cond) n_pass++;
     else begin n_fail++; $error("[%0t] FAIL: %s", $time, msg); end
 endtask
 
+/* helper function to create fake (and predictable) read data */
+/* uses self-inverse property of XOR to produce predictable address-dependent data */
 function automatic logic [31:0] pattern(input logic [31:0] addr);
     return addr ^ TAG;
 endfunction
 
- /* Upstream manager BFM -- TB plays manager on `up` (guard.s)
- *   up_push_ar()   queues an address; a free-running driver presents AR
- *                  beats one at a time and blocks on ARREADY like a real
- *                  manager would.
- *   wait_for_r()   blocks the calling test until one R beat has been
- *                  accepted, returning it in program order.
- */
+/* system verilog queues */
+logic [ADDR_WIDTH - 1 :0] ar_q[$]; /* store read addresses */
+r_beat_t rx_q[$]; /* queue to hold R beat (read-response) transfer on R channel */
 
-logic [31:0] ar_q[$];
-r_beat_t     rx_q[$];
-
+/* task to add a read address into the AW channel queue */
 task automatic up_push_ar(input logic [31:0] addr);
-    ar_q.push_back(addr);
+    ar_q.push_back(addr); /* add AR to (back of the) queue */
 endtask
 
+/* Waits until an accepted R-channel response is available, then removes
+   and returns the oldest response captured by the upstream R monitor. */
 task automatic wait_for_r(output r_beat_t r);
     while (rx_q.size() == 0) @ (posedge clk);
     r = rx_q.pop_front();
 endtask
 
+/* Sets upstream RREADY on the falling edge, allowing tests to accept
+   responses or deliberately apply R-channel backpressure. */
+   /* signify that the manager is ready (or not) to take the read data*/
 task automatic up_set_rready(input bit v);
     @ (negedge clk);
     up.rready = v;
@@ -68,29 +70,35 @@ endtask
 /* AR driver: one bus cycle to present a beat, one more to notice ARREADY.
    That under-drives peak throughput but keeps the loop trivial to read;
    this TB is about correctness, not saturating the channel. */
+
+
+/* execute this at the start, but keep running forever */
 initial begin
     up.arvalid = 1'b0;
     up.ar = '0;
     forever begin
         @ (negedge clk);
+        /* no read address is currently being presented, and at least one address is waiting in the manager's request queue. */
         if (!up.arvalid && ar_q.size() != 0) begin
-            up.ar.addr = ar_q.pop_front();
-            up.ar.prot = '0;
-            up.arvalid = 1'b1;
-        end else if (up.arvalid && up.arready) begin
+            up.ar.addr = ar_q.pop_front(); /* take first addr from queue to and place it on AXI bus */
+            up.ar.prot = '0;  /* Use default ARPROT attributes for this testbench. */
+            up.arvalid = 1'b1; /* assert valid signal for the bus */
+            /* If an AR request is already valid and the guard asserts ARREADY,
+            the current address has been accepted. Load the next queued address,
+            or deassert ARVALID if no more requests are waiting. */
+        end else if (up.arvalid && up.arready) begin 
             if (ar_q.size() != 0) up.ar.addr = ar_q.pop_front();
             else up.arvalid = 1'b0;
         end
     end
 end
 
-/* R sink: accepts whenever up.rready is high (default) and records beats
-   in arrival order for wait_for_r() to hand back to the test. */
+/* Keeps the upstream manager ready and records every accepted R-channel response in rx_q. */
 initial begin
-    up.rready = 1'b1;
+    up.rready = 1'b1; /* TB has upstream manager ready to accept read resopnes by default; execute this line once */
     forever begin
         @ (posedge clk);
-        if (up.rvalid && up.rready) rx_q.push_back(up.r);
+        if (up.rvalid && up.rready) rx_q.push_back(up.r); /* take read resp currently on AXI R channel and save copy at the back of rx_q */
     end
 end
 
@@ -99,54 +107,58 @@ end
  *   sub_set_ar_ready()   forces ARREADY low/high (unused by default tests)
  *   sub_set_resp_enable() 0 = accept AR but never answer -> forces a timeout
  **************************************************************************/
-logic [31:0] sub_pending_q[$];
-bit sub_ar_ready     = 1'b1;
-bit sub_resp_enable  = 1'b1;
 
+
+logic [31:0] sub_pending_q[$]; /* queue of read addresses that downstream sub has accepted (but not answered) */
+bit sub_ar_ready = 1'b1; /* signal to assert AR accepting readiness */
+bit sub_resp_enable = 1'b1; /* bit to control whetehr sub is allowed to generate read responses */
+
+/* helper function to set ARREADY bit */
 task automatic sub_set_ar_ready(input bit v);
     @ (negedge clk);
     sub_ar_ready = v;
 endtask
 
+/* helper function to set resp enabale (TB only knob) */
 task automatic sub_set_resp_enable(input bit v);
     @ (negedge clk);
     sub_resp_enable = v;
 endtask
 
 initial begin  //driver
-    dn.arready = 1'b1;
-    forever begin @(negedge clk); dn.arready = sub_ar_ready; end
+    dn.arready = 1'b1; /* initial readiness */
+    forever begin @(negedge clk);  /* gives the signal half a clock to settle before the DUT looks at it */
+    dn.arready = sub_ar_ready; /* else copy TB control variable */
+    end
 end
 initial begin  //sampler
     forever begin
-        @(posedge clk);
+        @(posedge clk); /* watch for AR handshake */
         if (dn.arvalid && dn.arready) sub_pending_q.push_back(dn.ar.addr);
     end
 end
 
 initial begin
-    dn.rvalid = 1'b0;
+    dn.rvalid = 1'b0; /* initial; sub is not presenting valid read response */
     forever begin
-        @ (negedge clk);
-        if (dn.rvalid && dn.rready) dn.rvalid = 1'b0; /* prior beat accepted */
+        @ (negedge clk); 
+        if (dn.rvalid && dn.rready) dn.rvalid = 1'b0; /* if prior beat accepted by guard, clear RVALID*/
         if (!dn.rvalid && sub_resp_enable && sub_pending_q.size() != 0) begin
-            dn.r.data = pattern(sub_pending_q.pop_front());
+            dn.r.data = pattern(sub_pending_q.pop_front()); /* use the pattern function to generate a read data */
             dn.r.resp = RESP_OKAY;
             dn.rvalid = 1'b1;
         end
     end
 end
 
-/**************************************************************************
- * Reset: also clears BFM queues/knobs so each directed test starts clean.
- **************************************************************************/
+/* Reset: also clears BFM queues/knobs so each directed test starts clean */
 task automatic reset_dut();
-    rst_n = 1'b0;
-    epoch_clr = 1'b0; flush = 1'b0;
-    ar_q.delete(); rx_q.delete(); sub_pending_q.delete();
-    sub_ar_ready = 1'b1; sub_resp_enable = 1'b1;
-    repeat (3) @ (posedge clk);
-    rst_n = 1'b1;
+    rst_n = 1'b0; /* assert active low reset in design */
+    epoch_clr = 1'b0; flush = 1'b0; /* both tplvl control inputs into inctive state */
+    ar_q.delete(); rx_q.delete(); sub_pending_q.delete(); /* delete everything from every queue */
+    sub_ar_ready = 1'b1; sub_resp_enable = 1'b1; /* restore sub to default states (willing to accept AR, and ability to generate resp) */
+    repeat (3) @ (posedge clk); 
+    rst_n = 1'b1; /* deassert reset after a few clock cycles to settle */
     @ (posedge clk);
 endtask
 
