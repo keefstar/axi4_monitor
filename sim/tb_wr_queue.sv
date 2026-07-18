@@ -83,6 +83,26 @@ module tb_wr_queue;
     up.bready = v;
   endtask
   
+  /* Accept flags, sampled AT the posedge (pre-edge values, exactly what the
+     DUT's own registers capture). The guard's hold-AW design lets AWREADY and
+     WREADY go combinationally high mid-cycle, driven by a state transition
+     from THIS same transaction (wpair_state flipping on the very edge that
+     admits AW). A driver that re-reads awvalid/awready or wvalid/wready live
+     at the following negedge can see that freshly-settled high and conclude
+     "accepted" one negedge before the DUT actually captures it -- dropping
+     VALID right before the real capturing posedge and wedging the pair FSM
+     forever. Sampling here and reacting to the sampled flag one negedge later
+     guarantees the driver only advances on a transfer the DUT truly captured. */
+  logic aw_accepted, w_accepted;
+  always_ff @ (posedge clk or negedge rst_n) begin
+    if (!rst_n) aw_accepted <= 1'b0;
+    else        aw_accepted <= up.awvalid && up.awready;
+  end
+  always_ff @ (posedge clk or negedge rst_n) begin
+    if (!rst_n) w_accepted <= 1'b0;
+    else        w_accepted <= up.wvalid && up.wready;
+  end
+
   /* AW driver: hold AWVALID until AWREADY, then advance. */
   initial begin
     up.awvalid = 1'b0;
@@ -94,13 +114,13 @@ module tb_wr_queue;
         up.aw.prot = '0;
         up.awvalid = 1'b1;
       end
-      else if (up.awvalid && up.awready) begin
+      else if (aw_accepted) begin
         if (aw_q.size() != 0) up.aw.addr = aw_q.pop_front();
         else up.awvalid = 1'b0;
       end
     end
   end
-  
+
   /* W driver: hold WVALID until WREADY, then advance. Decoupled from AW --
      the guard enforces AW-first; the manager just keeps its offer stable. */
   initial begin
@@ -113,7 +133,7 @@ module tb_wr_queue;
         up.w.strb = '1;
         up.wvalid = 1'b1;
       end
-      else if (up.wvalid && up.wready) begin
+      else if (w_accepted) begin
         if (w_q.size() != 0) up.w.data = w_q.pop_front();
         else up.wvalid = 1'b0;
       end
