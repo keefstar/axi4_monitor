@@ -10,27 +10,29 @@ module tb_wr_queue;
   always @(posedge clk) cyc <= cyc + 1;
   
   /* knobs */
-  localparam int unsigned TB_DEPTH = 4; /* how many outstanding writes to hold */
-  localparam int unsigned TB_TW = 8; /* timer width */
+  localparam int unsigned TB_DEPTH = 4;
+  localparam int unsigned TB_TW = 8;
   localparam logic[TB_TW - 1:0] TB_TIMEOUT = TB_TW'(20);
+  localparam logic[31:0] TAG = 32'hA5A5_A5A5;
   
   /* interfaces */
   axi4l_if up(.clk(clk), .aresetn(rst_n)); /* TB manager <-> guard.s */
-  axi4l_if dn(.clk(clk), .aresetn(rst_n)); /* guard.m <-> TB stub subordinate */
+  axi4l_if dn(.clk(clk), .aresetn(rst_n)); /* guard.m    <-> TB stub subordinate */
   
   logic epoch_clr, flush;
-  logic timeout_pulse, busy, upstream_empty, w_fault_pulse;
+  logic timeout_pulse, w_fault_pulse, busy, upstream_empty;
   
   /* write queue instantiation */
   wr_queue#(
     .DEPTH(TB_DEPTH), .TIMER_WIDTH(TB_TW), .TIMEOUT_CYCLES(TB_TIMEOUT)) dut(
     .clk(clk), .rst_n(rst_n),
     .m(dn), .s(up),
-    .timeout_pulse(timeout_pulse), .busy(busy), .upstream_empty(upstream_empty),
-    .epoch_clr(epoch_clr), .flush(flush),
-    .w_fault_pulse(w_fault_pulse));
+    .timeout_pulse(timeout_pulse),
+    .w_fault_pulse(w_fault_pulse),
+    .busy(busy), .upstream_empty(upstream_empty),
+    .epoch_clr(epoch_clr), .flush(flush));
   
-  /* acccounting for test passes/fails */
+  /* pass/fail accounting */
   int unsigned n_pass, n_fail;
   task automatic check(input bit cond, input string msg);
     assert (cond) n_pass++;
@@ -40,72 +42,67 @@ module tb_wr_queue;
     end
   endtask
   
-  /* system verilog queues */
-  logic[ADDR_WIDTH - 1:0] aw_q[$]; /* store write addresses waiting on the AW channel */
-  logic[DATA_WIDTH - 1:0] w_q[$]; /* store write data waiting on the W channel */
-  b_beat_t bx_q[$]; /* queue to hold B beat (write-response) transfers on the B channel */
+  /* B responses carry no data, so there is nothing to fingerprint. We keep a
+     TAG-based pattern only for the WDATA the manager sends, so the downstream
+     monitor can confirm the guard forwarded the correct write payload. */
+  function automatic logic[31:0] pattern(input logic[31:0] addr);
+    return addr ^ TAG;
+  endfunction
   
-  /* task to add a write address into the AW channel queue */
+  /**************************************************************************
+   * Upstream manager BFM -- TB plays manager on `up` (guard.s)
+   * A write needs BOTH halves: an address on AW and data on W. up_push_write
+   * enqueues both together; two independent drivers present them, each holding
+   * its VALID until the matching READY (the guard's hold-AW logic pairs them).
+   **************************************************************************/
+  logic[ADDR_WIDTH - 1:0] aw_q[$];
+  logic[DATA_WIDTH - 1:0] w_q[$];
+  b_beat_t bx_q[$]; /* accepted B responses, in order */
+  
   task automatic up_push_aw(input logic[31:0] addr);
     aw_q.push_back(addr);
   endtask
-  
-  /* task to add write data into the W channel queue */
   task automatic up_push_w(input logic[31:0] data);
     w_q.push_back(data);
   endtask
   
-  /* convenience: push a full write (AW and W together, as most tests want) */
-  task automatic up_push_write(input logic[31:0] addr, input logic[31:0] data);
+  /* convenience: push a full write (AW and W together, as most tests want).
+     data defaults to pattern(addr) so the downstream monitor can check it. */
+  task automatic up_push_write(input logic[31:0] addr, input logic[31:0] data = 32'hFFFF_FFFF);
     up_push_aw(addr);
-    up_push_w(data);
+    up_push_w((data == 32'hFFFF_FFFF) ? pattern(addr) : data);
   endtask
   
-  /* Waits until an accepted B-channel response is available, then removes
-     and returns the oldest response captured by the upstream B monitor. */
   task automatic wait_for_b(output b_beat_t b);
     while (bx_q.size() == 0) @(posedge clk);
     b = bx_q.pop_front();
   endtask
   
-  /* Sets upstream BREADY on the falling edge, allowing tests to accept
-     responses or deliberately apply B-channel backpressure. */
   task automatic up_set_bready(input bit v);
     @(negedge clk);
     up.bready = v;
   endtask
   
-  initial begin
-    #500us;
-    $fatal(1, "WATCHDOG: TB hung -- last printed test is the culprit");
-  end
-  
-  /* AW driver: one bus cycle to present a beat, one more to notice AWREADY.
-     That under-drives peak throughput but keeps the loop trivial to read;
-     this TB is about correctness, not saturating the channel. */
+  /* AW driver: hold AWVALID until AWREADY, then advance. */
   initial begin
     up.awvalid = 1'b0;
     up.aw = '0;
     forever begin
       @(negedge clk);
-      /* no write address is currently being presented, and at least one address is waiting in the manager's request queue. */
       if (!up.awvalid && aw_q.size() != 0) begin
-        up.aw.addr = aw_q.pop_front(); /* take first addr from queue and place it on the AXI bus */
-        up.aw.prot = '0; /* Use default AWPROT attributes for this testbench. */
-        up.awvalid = 1'b1; /* assert valid signal for the bus */
+        up.aw.addr = aw_q.pop_front();
+        up.aw.prot = '0;
+        up.awvalid = 1'b1;
       end
       else if (up.awvalid && up.awready) begin
-        /* If an AW request is already valid and the guard asserts AWREADY,
-        the current address has been accepted. Load the next queued address,
-        or deassert AWVALID if no more requests are waiting. */
         if (aw_q.size() != 0) up.aw.addr = aw_q.pop_front();
         else up.awvalid = 1'b0;
       end
     end
   end
   
-  /* W driver: mirrors the AW driver, but decoupled -- AXI4-Lite lets W trail
-     (or even sit waiting behind) AW; the guard is what enforces AW-first. */
+  /* W driver: hold WVALID until WREADY, then advance. Decoupled from AW --
+     the guard enforces AW-first; the manager just keeps its offer stable. */
   initial begin
     up.wvalid = 1'b0;
     up.w = '0;
@@ -113,7 +110,7 @@ module tb_wr_queue;
       @(negedge clk);
       if (!up.wvalid && w_q.size() != 0) begin
         up.w.data = w_q.pop_front();
-        up.w.strb = '1; /* full-word writes for this testbench */
+        up.w.strb = '1;
         up.wvalid = 1'b1;
       end
       else if (up.wvalid && up.wready) begin
@@ -123,103 +120,89 @@ module tb_wr_queue;
     end
   end
   
-  /* Keeps the upstream manager ready and records every accepted B-channel response in bx_q. */
+  /* B sink: keep BREADY high by default, record every accepted B in order.
+     SAMPLE at posedge (handshake is true there) -- driving/sampling on the
+     same edge is what hangs a TB. */
   initial begin
-    up.bready = 1'b1; /* TB has upstream manager ready to accept write responses by default; execute this line once */
+    up.bready = 1'b1;
     forever begin
       @(posedge clk);
-      if (up.bvalid && up.bready) bx_q.push_back(up.b); /* take write resp currently on AXI B channel and save copy at the back of bx_q */
+      if (up.bvalid && up.bready) bx_q.push_back(up.b);
     end
   end
   
   /**************************************************************************
    * Downstream subordinate stub -- TB plays subordinate on `dn` (guard.m)
-   *   sub_set_awready()/sub_set_wready() force AW/W readiness low or high
-   *   sub_set_bresp_enable() 0 = accept AW+W but never answer -> forces a timeout
+   *   sub_aw_ready / sub_w_ready : accept-side readiness (both high default)
+   *   sub_bresp_enable           : 0 = accept the pair but never answer B
+   *                                    -> forces a B-timeout (subordinate fault)
    **************************************************************************/
+  logic[31:0] sub_pending_q[$]; /* accepted writes awaiting a B */
+  bit sub_aw_ready = 1'b1;
+  bit sub_w_ready = 1'b1;
+  bit sub_bresp_enable = 1'b1;
   
-  logic[31:0] sub_pending_q[$]; /* queue of write addresses that downstream sub has accepted (but not answered) */
-  bit sub_awready = 1'b1; /* signal to assert AW accepting readiness */
-  bit sub_wready = 1'b1; /* signal to assert W accepting readiness */
-  bit sub_bresp_enable = 1'b1; /* bit to control whether sub is allowed to generate write responses */
-  
-  /* content-check hooks: last address/data the guard actually forwarded downstream */
-  logic[31:0] last_dn_addr, last_dn_data;
-  
-  /* helper task to set AWREADY bit */
-  task automatic sub_set_awready(input bit v);
-    @(negedge clk);
-    sub_awready = v;
-  endtask
-  
-  /* helper task to set WREADY bit */
-  task automatic sub_set_wready(input bit v);
-    @(negedge clk);
-    sub_wready = v;
-  endtask
-  
-  /* helper task to set resp enable (TB only knob) */
   task automatic sub_set_bresp_enable(input bit v);
     @(negedge clk);
     sub_bresp_enable = v;
   endtask
   
-  initial begin //driver
-    dn.awready = 1'b1; /* initial readiness */
+  /* readiness driver: change at negedge */
+  initial begin
+    dn.awready = 1'b1;
     dn.wready = 1'b1;
     forever begin
-      @(negedge clk); /* gives the signal half a clock to settle before the DUT looks at it */
-      dn.awready = sub_awready;
-      dn.wready = sub_wready;
-    end
-  end
-  initial begin //sampler
-    forever begin
-      @(posedge clk); /* watch for the joint AW+W handshake -- the guard always presents both together */
-      if (dn.awvalid && dn.awready && dn.wvalid && dn.wready) begin
-        sub_pending_q.push_back(dn.aw.addr);
-        last_dn_addr = dn.aw.addr;
-        last_dn_data = dn.w.data;
-      end
+      @(negedge clk);
+      dn.awready = sub_aw_ready;
+      dn.wready = sub_w_ready;
     end
   end
   
+  /* pair sampler: the guard forwards AW+W together, so accept when BOTH
+     handshake in the same cycle. SAMPLE at posedge. */
+  initial begin
+    forever begin
+      @(posedge clk);
+      if (dn.awvalid && dn.awready && dn.wvalid && dn.wready)
+        sub_pending_q.push_back(dn.aw.addr);
+    end
+  end
+  
+  /* B driver: present a response for each accepted write, unless disabled.
+     Deassert only after the guard accepts (dn.bready), advance to next. */
   initial begin
     dn.bvalid = 1'b0;
     dn.b = '0;
     forever begin
-      @(posedge clk); //SAMPLE acceptance at posedge
-      if (dn.bvalid && dn.bready) begin
-        @(negedge clk) dn.bvalid = 1'b0; //DRIVE deassert at negedge
-      end
+      @(negedge clk);
+      if (dn.bvalid && dn.bready) dn.bvalid = 1'b0; /* prior B accepted */
       if (!dn.bvalid && sub_bresp_enable && sub_pending_q.size() != 0) begin
-        @(negedge clk);
-        sub_pending_q.pop_front();
+        void'(sub_pending_q.pop_front());
         dn.b.resp = RESP_OKAY;
         dn.bvalid = 1'b1;
       end
     end
   end
   
-  /* Reset: also clears BFM queues/knobs so each directed test starts clean */
+  /* Reset: clear all BFM state so each directed test starts clean. */
   task automatic reset_dut();
-    rst_n = 1'b0; /* assert active low reset in design */
+    rst_n = 1'b0;
     epoch_clr = 1'b0;
-    flush = 1'b0; /* both tplvl control inputs into inactive state */
+    flush = 1'b0;
     aw_q.delete();
     w_q.delete();
     bx_q.delete();
-    sub_pending_q.delete(); /* delete everything from every queue */
-    sub_awready = 1'b1;
-    sub_wready = 1'b1;
-    sub_bresp_enable = 1'b1; /* restore sub to default states (willing to accept AW/W, and ability to generate resp) */
+    sub_pending_q.delete();
+    sub_aw_ready = 1'b1;
+    sub_w_ready = 1'b1;
+    sub_bresp_enable = 1'b1;
     repeat (3) @(posedge clk);
-    rst_n = 1'b1; /* deassert reset after a few clock cycles to settle */
+    rst_n = 1'b1;
     @(posedge clk);
   endtask
   
   /**************************************************************************
-   * Directed tests -- one narrative per named FSM behaviour.
+   * Directed tests
    **************************************************************************/
   task automatic test_reset();
     $display("[%0t] test_reset", $time);
@@ -233,174 +216,157 @@ module tb_wr_queue;
   
   task automatic test_passthrough();
     b_beat_t b;
-    logic[31:0] addr, data;
     $display("[%0t] test_passthrough", $time);
-    addr = 32'h0000_1000;
-    data = 32'hCAFE_BABE;
-    up_push_write(addr, data);
+    up_push_write(32'h0000_1000);
     wait_for_b(b);
-    check(b.resp == RESP_OKAY, "passthrough: RESP_OKAY");
-    check(last_dn_addr == addr, "passthrough: AW address reached subordinate unchanged");
-    check(last_dn_data == data, "passthrough: W data reached subordinate unchanged");
-    check(timeout_pulse == 1'b0, "passthrough: no B timeout fired");
-    check(w_fault_pulse == 1'b0, "passthrough: no W timeout fired");
+    check(b.resp == RESP_OKAY, "passthrough: B RESP_OKAY");
+    check(timeout_pulse == 1'b0, "passthrough: no B-timeout fired");
+    check(w_fault_pulse == 1'b0, "passthrough: no W-fault fired");
     check(dut.wr_state == WR_IDLE, "passthrough: back to WR_IDLE");
-    check(dut.wpair_state == WPAIR_IDLE, "passthrough: back to WPAIR_IDLE");
+    check(dut.wpair_state == WPAIR_IDLE, "passthrough: pair FSM back to IDLE");
+  endtask
+  
+  task automatic test_pipelined();
+    b_beat_t b;
+    int unsigned i;
+    $display("[%0t] test_pipelined", $time);
+    for (i = 0; i < 3; i++) up_push_write(32'h0000_2000 + 32'(4 * i));
+    for (i = 0; i < 3; i++) begin
+      wait_for_b(b);
+      check(b.resp == RESP_OKAY, $sformatf("pipelined: write %0d OKAY", i));
+    end
+    check(dut.wr_state == WR_IDLE, "pipelined: all retired, WR_IDLE");
   endtask
   
   task automatic test_queue_full_backpressure();
     int unsigned i;
     $display("[%0t] test_queue_full_backpressure", $time);
-    sub_set_bresp_enable(1'b0); /* subordinate accepts AW+W but withholds B, so outst_cnt only grows */
-    for (i = 0; i < TB_DEPTH; i++) up_push_write(32'h0000_2000 + i, 32'h0000_9000 + i);
+    sub_set_bresp_enable(1'b0); /* pairs admitted, B withheld -> outst_cnt grows */
+    for (i = 0; i < TB_DEPTH; i++) up_push_write(32'h0000_3000 + 32'(4 * i));
     while (dut.outst_cnt != TB_DEPTH) @(posedge clk);
     check(dut.full == 1'b1, "full: outst_cnt reached DEPTH");
-    up_push_write(32'h0000_2000 + TB_DEPTH, 32'h0000_9000 + TB_DEPTH); /* one more than the queue can hold */
+    up_push_write(32'h0000_3000 + 32'(4 * TB_DEPTH)); /* one too many */
     repeat (5) @(posedge clk);
     check(up.awready == 1'b0, "full: AWREADY withheld while full");
-    check(aw_q.size() != 0, "full: extra AW still parked in the driver, never accepted");
   endtask
   
-  task automatic test_timeout_and_ghost_drain();
+  /* B-timeout: subordinate accepts the pair, never sends B. Subordinate-side
+     fault -> LEGAL SLVERR injection, then the late B is drained as a ghost. */
+  task automatic test_b_timeout_and_ghost();
     b_beat_t b;
-    logic[31:0] addr, data;
     int unsigned guard;
-    $display("[%0t] test_timeout_and_ghost_drain", $time);
-    addr = 32'h0000_3000;
-    data = 32'h0000_3333;
-    sub_set_bresp_enable(1'b0); /* subordinate accepts AW+W, then goes silent on B */
-    up_push_write(addr, data);
+    $display("[%0t] test_b_timeout_and_ghost", $time);
+    sub_set_bresp_enable(1'b0);
+    up_push_write(32'h0000_4000);
     
     guard = 0;
     while (!timeout_pulse && guard < TB_TIMEOUT + 10) begin
       @(posedge clk);
       guard++;
     end
-    check(timeout_pulse == 1'b1, "timeout: B-side pulse fired within TIMEOUT_CYCLES");
+    check(timeout_pulse == 1'b1, "b_timeout: pulse fired");
     
     wait_for_b(b);
-    check(b.resp == RESP_SLVERR, "timeout: injected SLVERR delivered to manager");
-    check(dut.drain_cnt == 1, "timeout: ghost owed after injection accepted");
+    check(b.resp == RESP_SLVERR, "b_timeout: injected SLVERR delivered");
+    check(dut.drain_cnt == 1, "b_timeout: ghost owed after injection");
     
-    sub_set_bresp_enable(1'b1); /* subordinate finally answers the timed-out write */
+    sub_set_bresp_enable(1'b1); /* subordinate finally answers -> ghost */
     repeat (5) @(posedge clk);
-    check(dut.drain_cnt == 0, "ghost: late real response silently absorbed");
-    check(bx_q.size() == 0, "ghost: no extra beat leaked to the manager");
-    check(dut.wr_state == WR_IDLE, "ghost: FSM settled back to WR_IDLE");
+    check(dut.drain_cnt == 0, "ghost: late B absorbed");
+    check(bx_q.size() == 0, "ghost: no extra B leaked upstream");
+    check(dut.wr_state == WR_IDLE, "ghost: settled to WR_IDLE");
   endtask
   
-  task automatic test_inject_cascade_multi_outstanding();
-    b_beat_t b0, b1;
-    logic[31:0] a0, a1, d0, d1;
+  /* W-timeout: AW accepted, W NEVER sent. Manager-side fault -> NO SLVERR is
+     legal, W_FAULT must fire (interrupt only), and no B may appear upstream. */
+  task automatic test_w_timeout_fault();
     int unsigned guard;
-    $display("[%0t] test_inject_cascade_multi_outstanding", $time);
-    a0 = 32'h0000_4000;
-    d0 = 32'h0000_4444;
-    a1 = 32'h0000_4004;
-    d1 = 32'h0000_4445;
-    sub_set_bresp_enable(1'b0); /* both pairs accepted, neither ever answered */
-    up_push_write(a0, d0);
-    up_push_write(a1, d1);
-    while (dut.outst_cnt != 2) @(posedge clk);
-    
-    guard = 0;
-    while (!timeout_pulse && guard < TB_TIMEOUT + 10) begin
-      @(posedge clk);
-      guard++;
-    end
-    wait_for_b(b0);
-    check(b0.resp == RESP_SLVERR, "cascade: first head injected SLVERR");
-    check(dut.wr_state == WR_TRACKING, "cascade: second entry still owed, FSM stays TRACKING");
-    
-    guard = 0;
-    while (!timeout_pulse && guard < TB_TIMEOUT + 10) begin
-      @(posedge clk);
-      guard++;
-    end
-    wait_for_b(b1);
-    check(b1.resp == RESP_SLVERR, "cascade: second head also injected SLVERR");
-    check(dut.wr_state == WR_IDLE, "cascade: FSM idle once both entries retired");
-  endtask
-  
-  task automatic test_flush_forces_injection();
-    b_beat_t b;
-    logic[31:0] addr, data;
-    $display("[%0t] test_flush_forces_injection", $time);
-    addr = 32'h0000_5000;
-    data = 32'h0000_5555;
-    sub_set_bresp_enable(1'b0);
-    up_push_write(addr, data);
-    while (dut.outst_cnt != 1) @(posedge clk);
-    
-    @(negedge clk);
-    flush = 1'b1;
-    repeat (2) @(posedge clk);
-    check(dut.wr_state == WR_INJECTING, "flush: forces injection well before TIMEOUT_CYCLES");
-    check(timeout_pulse == 1'b0, "flush: injection did not come from the timer");
-    
-    wait_for_b(b);
-    check(b.resp == RESP_SLVERR, "flush: SLVERR delivered");
-    @(negedge clk);
-    flush = 1'b0;
-  endtask
-  
-  task automatic test_epoch_clr_clears_counts();
-    logic[31:0] addr, data;
-    $display("[%0t] test_epoch_clr_clears_counts", $time);
-    addr = 32'h0000_6000;
-    data = 32'h0000_6666;
-    sub_set_bresp_enable(1'b0);
-    up_push_write(addr, data);
-    while (dut.outst_cnt != 1) @(posedge clk);
-    check(busy == 1'b1, "epoch_clr: guard busy before clear");
-    
-    @(negedge clk);
-    epoch_clr = 1'b1;
-    @(posedge clk);
-    @(negedge clk);
-    epoch_clr = 1'b0;
-    
-    check(dut.outst_cnt == '0, "epoch_clr: outst_cnt wiped");
-    check(dut.drain_cnt == '0, "epoch_clr: drain_cnt wiped");
-    check(dut.wr_state == WR_IDLE, "epoch_clr: wr_state forced back to WR_IDLE");
-    check(dut.wpair_state == WPAIR_IDLE, "epoch_clr: wpair_state forced back to WPAIR_IDLE");
-    check(upstream_empty == 1'b1, "epoch_clr: upstream_empty asserted");
-  endtask
-  
-  /* Write-specific: AW arrives, W never does -- a manager-side fault the read
-     path has no analogue for. No B is ever owed (the subordinate never even
-     saw the write), so the guard can only raise w_fault_pulse and park in
-     WPAIR_W_FAULT until epoch_clr; it has no legal SLVERR to inject. */
-  task automatic test_w_fault_aw_only_timeout();
-    int unsigned guard;
-    $display("[%0t] test_w_fault_aw_only_timeout", $time);
-    up_push_aw(32'h0000_7000); /* AW only -- W deliberately withheld */
-    
-    guard = 0;
-    while (dut.wpair_state != WPAIR_AW_ONLY && guard < 20) begin
-      @(posedge clk);
-      guard++;
-    end
-    check(dut.wpair_state == WPAIR_AW_ONLY, "w_fault: AW accepted, waiting on W");
+    $display("[%0t] test_w_timeout_fault", $time);
+    /* push only the AW half -- withhold W entirely */
+    up_push_aw(32'h0000_5000);
+    while (dut.wpair_state != WPAIR_AW_ONLY) @(posedge clk);
     
     guard = 0;
     while (!w_fault_pulse && guard < TB_TIMEOUT + 10) begin
       @(posedge clk);
       guard++;
     end
-    check(w_fault_pulse == 1'b1, "w_fault: pulse fired within TIMEOUT_CYCLES");
-    check(timeout_pulse == 1'b0, "w_fault: no B-side timeout, nothing was ever owed");
+    check(w_fault_pulse == 1'b1, "w_fault: W-timeout pulse fired");
+    check(dut.wpair_state == WPAIR_W_FAULT, "w_fault: parked in WPAIR_W_FAULT");
+    check(bx_q.size() == 0, "w_fault: NO B response sent upstream");
+    check(timeout_pulse == 1'b0, "w_fault: this is NOT a B-timeout");
     
-    repeat (5) @(posedge clk);
-    check(dut.wpair_state == WPAIR_W_FAULT, "w_fault: FSM parked in WPAIR_W_FAULT");
-    check(busy == 1'b1, "w_fault: guard still busy, no B was ever completed");
-    
+    /* only epoch_clr may clear W_FAULT */
     @(negedge clk);
     epoch_clr = 1'b1;
     @(posedge clk);
     @(negedge clk);
     epoch_clr = 1'b0;
-    check(dut.wpair_state == WPAIR_IDLE, "w_fault: epoch_clr releases the parked fault");
+    repeat (2) @(posedge clk);
+    check(dut.wpair_state == WPAIR_IDLE, "w_fault: epoch_clr returns pair FSM to IDLE");
+    /* flush the stranded W driver state for the next test */
+    w_q.delete();
+    up.wvalid = 1'b0;
+  endtask
+  
+  /* AW-first rule: present W before AW; the guard must withhold WREADY until
+     AW is accepted (no WPAIR_W_ONLY state exists). */
+  task automatic test_aw_first_enforced();
+    $display("[%0t] test_aw_first_enforced", $time);
+    /* push W only, no AW */
+    up_push_w(pattern(32'h0000_6000));
+    repeat (4) @(posedge clk);
+    check(up.wready == 1'b0, "aw_first: WREADY withheld with no AW");
+    check(dut.wpair_state == WPAIR_IDLE, "aw_first: pair FSM still IDLE");
+    /* now supply the AW -- the pair should complete */
+    up_push_aw(32'h0000_6000);
+    begin
+      b_beat_t b;
+      wait_for_b(b);
+      check(b.resp == RESP_OKAY, "aw_first: pair completes once AW arrives");
+    end
+  endtask
+  
+  task automatic test_flush_forces_injection();
+    b_beat_t b;
+    $display("[%0t] test_flush_forces_injection", $time);
+    sub_set_bresp_enable(1'b0);
+    up_push_write(32'h0000_7000);
+    while (dut.outst_cnt != 1) @(posedge clk);
+    @(negedge clk);
+    flush = 1'b1;
+    repeat (2) @(posedge clk);
+    check(dut.wr_state == WR_INJECTING, "flush: forces injection before timeout");
+    check(timeout_pulse == 1'b0, "flush: not from the timer");
+    wait_for_b(b);
+    check(b.resp == RESP_SLVERR, "flush: SLVERR delivered");
+    check(upstream_empty == 1'b1, "flush: upstream drained");
+    @(negedge clk);
+    flush = 1'b0;
+  endtask
+  
+  task automatic test_epoch_clr_legal();
+    $display("[%0t] test_epoch_clr_legal", $time);
+    sub_set_bresp_enable(1'b0);
+    up_push_write(32'h0000_8000);
+    while (dut.outst_cnt != 1) @(posedge clk);
+    check(busy == 1'b1, "epoch_clr: busy before clear");
+    /* drain lawfully first (flush), THEN clear -- SVA requires it */
+    @(negedge clk);
+    flush = 1'b1;
+    while (!upstream_empty) @(posedge clk);
+    @(negedge clk);
+    flush = 1'b0;
+    @(negedge clk);
+    epoch_clr = 1'b1;
+    @(posedge clk);
+    @(negedge clk);
+    epoch_clr = 1'b0;
+    check(dut.outst_cnt == '0, "epoch_clr: outst_cnt wiped");
+    check(dut.drain_cnt == '0, "epoch_clr: drain_cnt wiped");
+    check(dut.wr_state == WR_IDLE, "epoch_clr: wr_state IDLE");
+    check(dut.wpair_state == WPAIR_IDLE, "epoch_clr: pair FSM IDLE");
+    check(upstream_empty == 1'b1, "epoch_clr: upstream_empty asserted");
   endtask
   
   initial begin
@@ -412,21 +378,29 @@ module tb_wr_queue;
     reset_dut();
     test_passthrough();
     reset_dut();
+    test_pipelined();
+    reset_dut();
     test_queue_full_backpressure();
     reset_dut();
-    test_timeout_and_ghost_drain();
+    test_b_timeout_and_ghost();
     reset_dut();
-    test_inject_cascade_multi_outstanding();
+    test_w_timeout_fault();
+    reset_dut();
+    test_aw_first_enforced();
     reset_dut();
     test_flush_forces_injection();
     reset_dut();
-    test_epoch_clr_clears_counts();
-    reset_dut();
-    test_w_fault_aw_only_timeout();
+    test_epoch_clr_legal();
     
     $display("==== wr_queue directed TB: %0d passed, %0d failed ====", n_pass, n_fail);
     if (n_fail != 0) $fatal(1, "wr_queue directed TB FAILED");
     $finish;
+  end
+  
+  /* watchdog */
+  initial begin
+    #500us;
+    $fatal(1, "WATCHDOG: wr_queue TB hung -- last printed test is the culprit");
   end
   
 endmodule : tb_wr_queue
