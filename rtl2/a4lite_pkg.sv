@@ -92,4 +92,11 @@ typedef enum logic [1:0] {
     GUARD_CONTAINING = 2'b01, /* Fault detected; injecting SLVERR, draining */
     GUARD_RECOVERY = 2'b10 /* Interrupt raised, awaiting recovery acknowlegdment */
 } guard_mode_e;
+
+
+/* FURTHER CONSTRAINTS ADDDED FORM UVM */
+localparam logic [ADDR_WIDTH-1:0] SUB_ADDR_BASE = 32'h4000_0000;
+localparam logic [ADDR_WIDTH-1:0] SUB_ADDR_END  = 32'h4000_FFFF;
+
+
 endpackage : a4lite_pkg
