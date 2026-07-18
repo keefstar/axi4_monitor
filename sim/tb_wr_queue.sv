@@ -75,6 +75,11 @@ module tb_wr_queue;
     up.bready = v;
   endtask
   
+  initial begin
+    #500us;
+    $fatal(1, "WATCHDOG: TB hung -- last printed test is the culprit");
+  end
+  
   /* AW driver: one bus cycle to present a beat, one more to notice AWREADY.
      That under-drives peak throughput but keeps the loop trivial to read;
      this TB is about correctness, not saturating the channel. */
@@ -180,11 +185,15 @@ module tb_wr_queue;
   end
   
   initial begin
-    dn.bvalid = 1'b0; /* initial; sub is not presenting a valid write response */
+    dn.bvalid = 1'b0;
+    dn.b = '0;
     forever begin
-      @(negedge clk);
-      if (dn.bvalid && dn.bready) dn.bvalid = 1'b0; /* if prior beat accepted by guard, clear BVALID */
+      @(posedge clk); //SAMPLE acceptance at posedge
+      if (dn.bvalid && dn.bready) begin
+        @(negedge clk) dn.bvalid = 1'b0; //DRIVE deassert at negedge
+      end
       if (!dn.bvalid && sub_bresp_enable && sub_pending_q.size() != 0) begin
+        @(negedge clk);
         sub_pending_q.pop_front();
         dn.b.resp = RESP_OKAY;
         dn.bvalid = 1'b1;
