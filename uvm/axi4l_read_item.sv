@@ -114,7 +114,7 @@ queue of integral values
 
 */
 
-import firewall_pkg::*;
+import a4lite_pkg::*;
 /* read request transaction */
 class axi4l_read_item extends uvm_sequence_item; /*inherit from uvm_sequence_item */
   /* That includes the UVM object infrastructure needed for sequences, drivers, printing, comparison, factory use, and so on. */
@@ -125,9 +125,12 @@ class axi4l_read_item extends uvm_sequence_item; /*inherit from uvm_sequence_ite
   endfunction
   
   /* Physical fields; correspond to actual AXI interface signals; driver eventually maps to ARADDR, ADRPROT etc */
+  /* request side fields*/
   rand logic[ADDR_WIDTH - 1:0] addr;
   rand logic[PROT_WIDTH - 1:0] prot;
-  rand logic[DATA_WIDTH - 1:0] data;
+  
+  /* response side fields*/
+  logic[DATA_WIDTH - 1:0] data;
   axi_resp_e resp;
   
   /* control fields; not part of AXI payload itself but for driver to understand how to execute the operation*/
@@ -136,7 +139,7 @@ class axi4l_read_item extends uvm_sequence_item; /*inherit from uvm_sequence_ite
   rand int unsigned rready_delay; /* cycles to wait before asserting RREADY*/
   
   /* default constraints: make the default transaction legal and typical*/
-  constraint alligned_addr_c {
+  constraint aligned_addr_c {
     /* for 32-bit word access, this makes default addresses word-aligned*/
     addr[1:0] == 2'b00;
   }
@@ -157,7 +160,7 @@ class axi4l_read_item extends uvm_sequence_item; /*inherit from uvm_sequence_ite
   /* our own class inherits methods from UVM for print copy etc but those methods do not automatically know what fields are inside custom clas either*/
   /* UVM knows that ai4l_read_item is an obect, but it does not inehrenty know that the object contains addr, prot etc*/
   /* the field macros tell inherited UVM methods: those are fields you should process, and this is each field's type*/
-  `uvm_object_utils_begins(axi4l_read_item) /* UVM, this class exists and may be create dthrough the factory */
+  `uvm_object_utils_begin(axi4l_read_item) /* UVM, this class exists and may be create dthrough the factory */
   /* packed logic vectors and integers*/
   `uvm_field_int(addr, UVM_ALL_ON)
   `uvm_field_int(prot, UVM_ALL_ON)
