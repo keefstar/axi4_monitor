@@ -23,7 +23,12 @@ class axi4l_read_driver extends uvm_driver#(axi4l_read_item); /* this driver con
   endfunction
   
   /* this syntax is common for all drivers; refer to (my own) notes for TLM connection*/
+  /* RUN PHASE RUNS ONCE AT START UP */
   virtual task run_phase(uvm_phase phase);
+    unique case (role) /* Put whichever signals this driver owns into an idle state first. */
+      AXI4L_MANAGER: {vif.arvalid, vif.rready} <= '0;
+      AXI4L_SUBORDINATE: {vif.arready, vif.rvalid} <= '0;
+    endcase
     forever begin
       seq_item_port.get_next_item(req);
       drive_to_dut(req);
@@ -36,9 +41,98 @@ class axi4l_read_driver extends uvm_driver#(axi4l_read_item); /* this driver con
     case (role)
       AXI4L_MANAGER: drive_manager_read(item);
       AXI4L_SUBORDINATE: drive_subordinate_read(item);
-      `uvm_fatal("BADROLE", "unknown role")
-      default:
+      default: `uvm_fatal("BADROLE", "unknown role")
     endcase
   endtask
   
+  virtual task drive_manager_read(axi4l_read_item item);
+    /* Manager side:
+    drive ARADDR/ARPROT/ARVALID
+    wait for ARREADY
+    then drive RREADY
+    wait for RVALID/RDATA/RRESP*/
+    /* wait before issuing read (address) request*/
+    repeat (item.ar_delay)
+      @(vif.mon_cb);
+    
+    /* drive the AR payload directly onto the interface*/
+    vif.ar.addr <= item.addr;
+    vif.ar.prot <= item.prot;
+    vif.arvalid <= 1'b1;
+    
+    /* wait until an AR handshake is observed (from sub)*/
+    do begin
+      @(vif.mon_cb);
+    end
+    while (!vif.mon_cb.arready); /* Read the value of arready as sampled by the clocking block*/
+    
+    /* request was accepted; can deassert ARVALID by manager*/
+    vif.arvalid <= 1'b0;
+    
+    /* delay before accepting read resopnse/willingness*/
+    repeat (item.rready_delay)
+      @(vif.mon_cb);
+    
+    vif.rready <= 1'b1;
+    
+    /* wait until R handhsake occurs*/
+    do begin
+      @(vif.mon_cb);
+    end while (!vif.mon_cb.rvalid);
+    
+    /* capture the sampled resopnse*/
+    item.data = vif.mon_cb.r.data;
+    void'($cast(item.resp, vif.mon_cb.r.resp));
+    /* deassert RREADY to signify resopnse accepted*/
+    vif.rready <= 1'b0;
+  endtask
+  
+  
+  virtual task drive_subordinate_read(axi4l_read_item item);
+    /*
+    Subordinate side:
+    wait for ARVALID
+    drive ARREADY
+    then drive RDATA/RRESP/RVALID
+    wait for RREADY*/
+    
+    /* wait to recieve valid AR signal from manager*/
+    do begin
+      @(vif.mon_cb);
+    end while (!vif.mon_cb.arvalid);
+    
+    /* complete specified/randomized delays*/
+    repeat (item.arready_delay)
+      @(vif.mon_cb);
+    vif.arready <= 1'b1; /* drive its willingness to accept AR data; AR handshake complete*/
+    @(vif.mon_cb); /* wait for clk edge where AR handshake is official */
+    /* observe/obtain the driven data from manager*/
+    item.addr = vif.mon_cb.ar.addr;
+    item.prot = vif.mon_cb.ar.prot;
+    /* subordinate is able to de-assert ARREADY*/
+    vif.arready <= 1'b0;
+    /* AXI technically allows ARREADY to be asserted before ARVALID*/
+    
+    item.data = pattern(item.addr);
+    /* complete delay for ARREADY*/
+    repeat (item.rvalid_delay)
+      @(vif.mon_cb);
+    
+    vif.r.data <= item.data;
+    vif.r.resp <= RESP_OKAY;
+    vif.rvalid <= 1'b1;
+    
+    /* VALID must not depend on READY; otherwise, deadlock*/
+    do begin
+      @(vif.mon_cb);
+    end while (!vif.mon_cb.rready);
+    
+    /* R handshake completed */
+    vif.rvalid <= 1'b0;
+  endtask : drive_subordinate_read
+  
+  function automatic logic[DATA_WIDTH - 1:0] pattern(input logic[ADDR_WIDTH - 1:0] addr);
+    localparam logic[DATA_WIDTH - 1:0] TAG = 32'hA5A5_5A5A;
+    return addr ^ TAG;
+  endfunction
 endclass : axi4l_read_driver

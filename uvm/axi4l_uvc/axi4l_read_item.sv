@@ -137,6 +137,9 @@ class axi4l_read_item extends uvm_sequence_item; /*inherit from uvm_sequence_ite
   //rand write_order_e write_order;
   rand int unsigned ar_delay; /* cycles to wait before asserting ARVALID */
   rand int unsigned rready_delay; /* cycles to wait before asserting RREADY*/
+  /* subordinate-side control fields */
+  rand int unsigned arready_delay; // cycles before subordinate asserts ARREADY
+  rand int unsigned rvalid_delay; // cycles before subordinate returns RVALID/response
   
   /* default constraints: make the default transaction legal and typical*/
   constraint aligned_addr_c {
@@ -150,6 +153,8 @@ class axi4l_read_item extends uvm_sequence_item; /*inherit from uvm_sequence_ite
   constraint default_delay_c {
     ar_delay inside {[0:5]};
     rready_delay inside {[0:5]};
+    arready_delay inside {[0:5]};
+    rvalid_delay inside {[0:5]};
   }
   
   /* a transactino bject needs operations such as randomize/print/compare/copy/pack/record into transactionw aveforms */
