@@ -6,6 +6,9 @@ class axi4l_agent extends uvm_agent; /* agents cannot be paramaterized*/
    * Do not redeclare is_active here -- it is inherited from uvm_agent.
    */
   
+  typedef enum {AXI4L_MANAGER, AXI4L_SUBORDINATE} axi4l_role_e;
+  axi4l_role_e role = AXI4L_MANAGER;
+  
   /* handles for our subcomponents (sequencer, driver, monitor); need to instantaite and connect in build/connect phase methods */
   axi4l_read_driver read_driver;
   axi4l_read_sequencer read_sequencer;
@@ -27,12 +30,14 @@ class axi4l_agent extends uvm_agent; /* agents cannot be paramaterized*/
   virtual function void build_phase(uvm_phase phase);
     /* agent sub components are created in build */
     super.build_phase(phase); /* super.build_phase(phase); calls the parent class's build_phase first so it can do its generic UVM setup; then this child class adds its own component-specific build logic.*/
-    monitor = new("axi4l_monitor", this);
+    /* Try to get this agent’s configured AXI role from the UVM config database and store it in role.”*/
+    void'(uvm_config_db#(axi4l_role_e)::get(this, "", "role", role)); /* void because if fail, by default drop to manager*/
+    monitor = axi4l_monitor::type_id::create("monitor", this);
     if (is_active == UVM_ACTIVE) begin /* “Only create traffic-generating machinery if this AXI agent is configured as active.”*/
-      read_sequencer = new("read_sequencer", this);
-      read_driver = new("read_driver", this);
-      write_sequencer = new("write_sequencer", this);
-      write_driver = new("write_driver", this);
+      rread_sequencer = axi4l_read_sequencer::type_id::create("read_sequencer", this);
+      read_driver = axi4l_read_driver::type_id::create("read_driver", this);
+      write_sequencer = axi4l_write_sequencer::type_id::create("write_sequencer", this);
+      write_driver = axi4l_write_driver::type_id::create("write_driver", this);
     end
   endfunction
   

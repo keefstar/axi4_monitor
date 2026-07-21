@@ -106,3 +106,32 @@ driver.seq_item_port.connect(sequencer.seq_item_export);
 seq_item_port.get_next_item(req);
 // driver finishes transaction
 seq_item_port.item_done();
+
+
+Structural:
+axi4l_upstream_agent
+│
+├ ─ ─ read_sequencer
+│ ↑
+│ │ sequence generates axi4l_read_item
+│
+├ ─ ─ read_driver
+│ │
+│ │ ARADDR
+│ │ ARPROT
+│ │ ARVALID
+│ │ RREADY
+│ ▼
+│
+└ ─ ─ monitor
+
+↓
+
+s_axi_if
+
+↓
+
+┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┐
+│ YOUR STALL - CONTAINMENT │
+│ GUARD │
+└ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┘

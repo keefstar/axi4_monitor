@@ -10,26 +10,21 @@ set_db lib_search_path [concat [get_db lib_search_path] $SOURCE_FOLDER $LIB_FOLD
 set_db library "slow_vdd1v0_basicCells.lib"
 
 #ensure correct ordering
-read_hdl -sv ${RTL}/a4lite_pkg.sv
-read_hdl -sv ${RTL}/axi4l_if.sv
-read_hdl -sv ${RTL}/interrupt_ctrl.sv
-read_hdl -sv ${RTL}/rd_queue.sv
-read_hdl -sv ${RTL}/wr_queue.sv
-read_hdl -sv ${RTL}/tp_lvl.sv
+read_hdl -sv ${SOURCE_FOLDER}/a4lite_pkg.sv
+read_hdl -sv ${SOURCE_FOLDER}/axi4l_if.sv
+read_hdl -sv ${SOURCE_FOLDER}/interrupt_ctrl.sv
+read_hdl -sv ${SOURCE_FOLDER}/rd_queue.sv
+read_hdl -sv ${SOURCE_FOLDER}/wr_queue.sv
+read_hdl -sv ${SOURCE_FOLDER}/tp_lvl.sv
 
 elaborate $TOP_LEVEL
 check_design -unresolved
 # Here: get_db current_design -> should show :$TOP_LEVEL
 
 # 3) Read timing constraints
-source constraints.tcl 
+source constraints.tcl
 
-# 4) synthesis of the design
-synthesize -to_generic -effort high
-synthesize -to_mapped -effort high -no_incr
-synthesize -to_mapped -effort high -incr
-
-insert_tiehilo_cells
+set clk_pin clk
 create_clock [get_ports $clk_pin] \
         -name core_clk \
         -period 2.0 \
@@ -37,6 +32,13 @@ create_clock [get_ports $clk_pin] \
 
 create_clock -name io_virtual_clk -period 2.0
 #Set clock back before priting.
+
+# 4) synthesis of the design
+synthesize -to_generic -effort high
+synthesize -to_mapped -effort high -no_incr
+synthesize -to_mapped -effort high -incr
+
+insert_tiehilo_cells
 # 5) Report specs and save 
 report_area > ./reports/${TOP_LEVEL}_${RUN_NAME}_area.rpt 
 report_gates > ./reports/${TOP_LEVEL}_${RUN_NAME}_gates.rpt   
