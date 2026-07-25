@@ -119,6 +119,14 @@ import a4lite_pkg::*;
 class axi4l_read_item extends uvm_sequence_item; /*inherit from uvm_sequence_item */
   /* That includes the UVM object infrastructure needed for sequences, drivers, printing, comparison, factory use, and so on. */
   
+  /* a single read_ap carries both kinds of read events (AR handshake = read req, R handshale = read resp)*/
+  /* scoreboard needs to know: is this an AR request, or an R response*/
+  typedef enum logic {
+    READ_REQUEST,
+    READ_RESPONSE
+  } axi4l_read_kind_e;
+  axi4l_read_kind_e kind;
+  
   /* super specific syntax*/
   function new(string name = "axi4l_read_item"); /* gives object a default name */
     super.new(name); /* calls constructor of the parent class, uvm_sequence_item*/
@@ -128,10 +136,11 @@ class axi4l_read_item extends uvm_sequence_item; /*inherit from uvm_sequence_ite
   /* request side fields*/
   rand logic[ADDR_WIDTH - 1:0] addr;
   rand logic[PROT_WIDTH - 1:0] prot;
-  
   /* response side fields*/
   logic[DATA_WIDTH - 1:0] data;
   axi_resp_e resp;
+  
+  
   
   /* control fields; not part of AXI payload itself but for driver to understand how to execute the operation*/
   //rand write_order_e write_order;

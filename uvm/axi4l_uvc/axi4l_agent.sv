@@ -34,7 +34,7 @@ class axi4l_agent extends uvm_agent; /* agents cannot be paramaterized*/
     void'(uvm_config_db#(axi4l_role_e)::get(this, "", "role", role)); /* void because if fail, by default drop to manager*/
     monitor = axi4l_monitor::type_id::create("monitor", this);
     if (is_active == UVM_ACTIVE) begin /* “Only create traffic-generating machinery if this AXI agent is configured as active.”*/
-      rread_sequencer = axi4l_read_sequencer::type_id::create("read_sequencer", this);
+      read_sequencer = axi4l_read_sequencer::type_id::create("read_sequencer", this);
       read_driver = axi4l_read_driver::type_id::create("read_driver", this);
       write_sequencer = axi4l_write_sequencer::type_id::create("write_sequencer", this);
       write_driver = axi4l_write_driver::type_id::create("write_driver", this);

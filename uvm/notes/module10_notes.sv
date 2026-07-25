@@ -313,3 +313,65 @@ sequence generates transactions
       endtask : run_phase
       
     endclass
+    
+    Ending simulation:
+    In UVM, run_phase is a time - consuming phase where your actual simulation activity happens:
+    build_phase
+    connect_phase
+    ↓
+    run_phase
+    ↓
+    test traffic happens here
+    ↓
+    simulation eventually ends
+    
+    The issue is:
+    
+    How does UVM know when run_phase should stop ?
+    
+    Your driver may be waiting forever for transactions.
+    Your monitor may be running forever.
+    Your sequencer may be sitting idle waiting for more sequence items.
+    
+    So UVM cannot just say:
+    “ I ’ ll wait until every task naturally returns.”
+    Because many UVM components are designed to run forever.
+    
+    So UVM needs some other mechanism to decide:
+    
+    “ The meaningful test stimulus is done now.We can
+    end
+    run_phase.”
+    
+    That mechanism is objections.
+    
+    An objection keeps run_phase alive while the test is doing useful work.
+    
+    task run_phase(uvm_phase phase);
+      phase.raise_objection(this);
+      fvirtual task body(/* UVM, do NOT end simualiton tet*/
+        assert (read_seq.randomize());
+        read_seq.start(read_sqr); /* generate and exeucte my traffic*/
+        phase.drop_objection(this); /* I'm done now, simulatio may finish*/
+    endtask
+    
+    What is the simpler approach:
+    TEST expliciltly starts sequence, then the clean rule is the TEST owns the objection.
+    
+    Drain time in UVM:
+    The flow studied is:
+    test is running
+    ↓
+    objection count > 0
+    ↓
+    last objection gets dropped
+    ↓
+    normally UVM can
+    end
+    run_phase immediately
+    
+    But maybe your DUT still has something in flight.
+    A drain time says:
+    “ After all objections are gone, wait a little longer before actually ending the phase.”
+    uvm_objection obj = phase.get_objection();
+    obj.set_drain_time(this, 200ns);

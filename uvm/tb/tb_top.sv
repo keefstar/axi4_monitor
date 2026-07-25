@@ -24,10 +24,19 @@ module tb_top;
     uvm_config_db#(virtual axi4l_if)::set(/* Store this real interface in the config DB under the name vif,
   and make it available to my AXI agent hierarchy*/
       null,
-      "uvm_test_top.env.agent*",
+      "uvm_test_top.env.upstream_agent*", /* UVM component hierarchy path; not file path*/ /* uvm_test_top = your UVM test instance; */
+      /* env is basically the container that holds the major UVM pieces of your testbench.*/
       "vif",
       upstream_if
     );
-    run_test();
+    
+    uvm_config_db#(virtual axi4l_if)::set(
+      null,
+      "uvm_test_top.env.downstream_agent*",
+      "vif",
+      downstream_if
+    );
+    run_test(); /* need */
   end
+  
 endmodule : tb_top

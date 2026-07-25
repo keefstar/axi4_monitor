@@ -1,6 +1,13 @@
 import a4lite_pkg::*;
 class axi4l_write_item extends uvm_sequence_item;
   
+  typedef enum logic[1:0] {
+    WRITE_ADDRESS,
+    WRITE_DATA,
+    WRITE_RESPONSE
+  } axi4l_write_kind_e;
+  axi4l_write_kind_e resp;
+  
   function new(string name = "axi4l_write_item");
     super.new(name);
   endfunction
