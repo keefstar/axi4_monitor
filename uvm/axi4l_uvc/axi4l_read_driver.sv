@@ -26,9 +26,13 @@ class axi4l_read_driver extends uvm_driver#(axi4l_read_item); /* this driver con
   /* RUN PHASE RUNS ONCE AT START UP */
   virtual task run_phase(uvm_phase phase);
     unique case (role) /* Put whichever signals this driver owns into an idle state first. */
-      AXI4L_MANAGER: {vif.arvalid, vif.rready} <= '0;
-      AXI4L_SUBORDINATE: {vif.arready, vif.rvalid} <= '0;
+      AXI4L_MANAGER: {vif.arvalid, vif.rready, vif.ar} <= '0;
+      AXI4L_SUBORDINATE: {vif.arready, vif.rvalid, vif.r} <= '0;
+      default: `uvm_fatal("BADROLE", "Unknown AXI4-Lite role")
     endcase
+    // Do not begin driving transactions while reset is active.
+    wait (vif.aresetn === 1'b1);
+    
     forever begin
       seq_item_port.get_next_item(req);
       drive_to_dut(req);
@@ -82,7 +86,7 @@ class axi4l_read_driver extends uvm_driver#(axi4l_read_item); /* this driver con
     
     /* capture the sampled resopnse*/
     item.data = vif.mon_cb.r.data;
-    void'($cast(item.resp, vif.mon_cb.r.resp));
+    item.resp = vif.mon_cb.r.resp;
     /* deassert RREADY to signify resopnse accepted*/
     vif.rready <= 1'b0;
   endtask
@@ -131,6 +135,7 @@ class axi4l_read_driver extends uvm_driver#(axi4l_read_item); /* this driver con
     vif.rvalid <= 1'b0;
   endtask : drive_subordinate_read
   
+  /* do i want/need this here if i have my new RAM idea?*/
   function automatic logic[DATA_WIDTH - 1:0] pattern(input logic[ADDR_WIDTH - 1:0] addr);
     localparam logic[DATA_WIDTH - 1:0] TAG = 32'hA5A5_5A5A;
     return addr ^ TAG;

@@ -1,4 +1,4 @@
-interface axi4l_if (input clk, aresetn);
+interface axi4l_if (input logic clk, input logic aresetn);
   import a4lite_pkg::*;
   /* Write address channel */
   logic awvalid, awready;

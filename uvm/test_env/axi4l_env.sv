@@ -17,7 +17,7 @@ class axi4l_env extends uvm_env;
     super.new(name, parent);
   endfunction
   
-  function void build_phase(uvm_phase phase);
+  virtual function void build_phase(uvm_phase phase);
     super.build_phase(phase);
     upstream_agent = axi4l_agent::type_id::create("upstream_agent", this);
     downstream_agent = axi4l_agent::type_id::create("downstream_agent", this);
@@ -32,21 +32,18 @@ class axi4l_env extends uvm_env;
   virtual function void connect_phase(uvm_phase phase);
     super.connect_phase(phase);
     
-    upstream_agent.monitor.read_ap.connect(
-      sb.upstream_read_imp
-    );
+    /* Upstream monitor -> Scoreboard */
+    upstream_agent.monitor.read_ap.connect(sb.upstream_read_imp);
+    upstream_agent.monitor.write_ap.connect(sb.upstream_write_imp);
     
-    upstream_agent.monitor.write_ap.connect(
-      sb.upstream_write_imp
-    );
-    
-    downstream_agent.monitor.read_ap.connect(
-      sb.downstream_read_imp
-    );
-    
-    downstream_agent.monitor.write_ap.connect(
-      sb.downstream_write_imp
-    );
+    /* Downstream monitor -> Scoreboard*/
+    downstream_agent.monitor.read_ap.connect(sb.downstream_read_imp);
+    downstream_agent.monitor.write_ap.connect(sb.downstream_write_imp);
     
   endfunction : connect_phase
+  
+  virtual function void end_of_elaboration_phase(uvm_phase phase);
+    super.end_of_elaboration_phase(phase);
+    uvm_top.print_topology();
+  endfunction
 endclass : axi4l_env
