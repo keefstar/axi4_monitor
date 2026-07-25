@@ -65,7 +65,7 @@ class axi4l_monitor extends uvm_monitor;
       
       /* AW CHANNEL FOR WRITE REQUESTS*/
       if (vif.mon_cb.awready && vif.mon_cb.awvalid) begin
-        write_tr = axi4l_write_item::type_id::create("write_request_tr");
+        write_tr = axi4l_write_item::type_id::create("write_address_tr");
         
         write_tr.addr = vif.mon_cb.aw.addr;
         write_tr.prot = vif.mon_cb.aw.prot;

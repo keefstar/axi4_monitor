@@ -25,6 +25,10 @@ class axi4l_env extends uvm_env;
   endfunction : build_phase
   
   /* In testbench connect phase, need to connect each monitor port to each appropraite scoreboard imp instance*/
+  /* Connect each monitor's analysis port to the corresponding
+  * scoreboard analysis implementation so the scoreboard
+  * receives observed upstream and downstream transactions.
+  */
   virtual function void connect_phase(uvm_phase phase);
     super.connect_phase(phase);
     
@@ -37,12 +41,12 @@ class axi4l_env extends uvm_env;
     );
     
     downstream_agent.monitor.read_ap.connect(
-      sb.downstream_read_imp;
-    )
+      sb.downstream_read_imp
+    );
     
     downstream_agent.monitor.write_ap.connect(
-      sb.downstream_write_imp;
-    )
+      sb.downstream_write_imp
+    );
     
   endfunction : connect_phase
 endclass : axi4l_env

@@ -72,36 +72,156 @@ class axi4l_sb extends uvm_scoreboard;
     case (tr_copy.kind)
       READ_REQUEST: begin
         downstream_read_req_q.push_back(tr_copy);
-        compare_read_requests();
+        check_read_request(); /* a valid downstream request must originate from an already accepted upstream request. */
       end
       READ_RESPONSE: downstream_read_resp_q.push_back(tr_copy);
-      default: `uvm_fatal("SB_ERROR", "Unknown upstream read transaction category");
+      default: `uvm_fatal("SB_ERROR", "Unknown downstream read transaction category");
     endcase
   endfunction : write_downstream_read
   
   function void write_upstream_write(axi4l_write_item tr);
     axi4l_write_item tr_copy;
     assert ($cast(tr_copy, tr.clone())) else `uvm_fatal("CAST FAIL", "Failed to clone upstream write")
-    upstream_write_q.push_back(tr_copy);
+    case (tr_copy.kind)
+      WRITE_ADDRESS: upstream_aw_q.push_back(tr_copy);
+      WRITE_DATA: upstream_w_q.push_back(tr_copy);
+      WRITE_RESPONSE: upstream_b_q.push_back(tr_copy);
+      default: `uvm_fatal("SB_ERROR", "Unknown upstream write transaction category");
+    endcase
   endfunction : write_upstream_write
   
   function void write_downstream_write(axi4l_write_item tr);
     axi4l_write_item tr_copy;
     assert ($cast(tr_copy, tr.clone())) else `uvm_fatal("CAST FAIL", "Failed to clone downstream write")
-    downstream_write_q.push_back(tr_copy);
+    case (tr_copy.kind)
+      WRITE_ADDRESS: begin
+        downstream_aw_q.push_back(tr_copy);
+        check_write_address();
+      end
+      WRITE_DATA: begin
+        downstream_w_q.push_back(tr_copy);
+        check_write_data();
+      end
+      WRITE_RESPONSE: downstream_b_q.push_back(tr_copy);
+      default: `uvm_fatal("SB_ERROR", "Unknown downsteam write transaction category");
+    endcase
   endfunction : write_downstream_write
   
   /* checker functions */
-  function bit compare_read_request(
-      axi4l_read_item expected,
-      axi4l_read_iem actual
-  );
+  function void check_read_request();
     
-    bit_match = 1;
+    axi4l_read_item expected;
+    axi4l_read_item actual;
     
-  endfunction : compare_read_request
+    /* Queue size check*/
+    if (upstream_read_req_q.size() == 0 || downstream_read_req_q.size() == 0) return;
+    expected = upstream_read_req_q.pop_front();
+    actual = downstream_read_req_q.pop_front();
+    
+    /* check address field*/
+    if (expected.addr !== actual.addr) begin `uvm_error("READ_REQ_ADDR",
+    $sformatf("Read address mismatch: expected = 0x%0h; actual = 0x%0h",
+    expected.addr, actual.addr)) end
+    
+    if (expected.prot !== actual.prot) begin `uvm_error("READ_REQ_PROT",
+    $sformatf("Read prot mismatch: expected = 0x%0h; actual = 0x%0h",
+    expected.prot, actual.prot)) end
+    
+  endfunction : check_read_request
+  
+  function void check_write_address();
+    
+    axi4l_write_item expected;
+    axi4l_write_item actual;
+    
+    if (upstream_aw_q.size() == 0 || downstream_aw_q.size() == 0) return;
+    expected = upstream_aw_q.pop_front();
+    actual = downstream_aw_q.pop_front();
+    
+    if (expected.addr !== actual.addr) begin `uvm_error("WRITE_AW_ADDR",
+    $sformatf("Write address mismatch: expected = 0x%0h; actual = 0x%0h",
+    expected.addr, actual.addr)) end
+    
+    if (expected.prot !== actual.prot) begin `uvm_error("WRITE_AW_PROT",
+    $sformatf("Write prot mismatch: expected = 0x%0h; actual = 0x%0h",
+    expected.prot, actual.prot)) end
+    
+  endfunction : check_write_address
+  
+  function void check_write_data();
+    
+    axi4l_write_item expected;
+    axi4l_write_item actual;
+    
+    if (upstream_w_q.size() == 0 || downstream_w_q.size() == 0) return;
+    expected = upstream_w_q.pop_front();
+    actual = downstream_w_q.pop_front();
+    
+    if (expected.data !== actual.data) begin `uvm_error("WRITE_W_DATA",
+    $sformatf("Write data mismatch: expected = 0x%0h; actual = 0x%0h",
+    expected.data, actual.data)) end
+    
+    if (expected.strb !== actual.strb) begin `uvm_error("WRITE_W_STRB",
+    $sformatf("Write strb mismatch: expected = 0x%0h; actual = 0x%0h",
+    expected.strb, actual.strb)) end
+    
+  endfunction : check_write_data
 endclass : axi4l_sb
+
+
 
 /* for tmr:
 impelement the comparision functions
 implement the RAM  model*/
+
+/* ==================== SCOREBOARD TODO ====================
+
+1. Compile and run one simple smoke test.
+   - Verify monitor publishes transactions correctly.
+   - Verify scoreboard receives them.
+   - Ensure check_read_request(), check_write_address(), and
+     check_write_data() all pass for a normal forwarding case.
+
+2. Reference RAM model.
+   - Create an independent memory prediction model.
+   - This stores what the DUT memory SHOULD contain.
+   - Never read the DUT's internal memory.
+
+3. Pair verified AW + W transactions.
+   - AW provides address.
+   - W provides data + strobes.
+   - One AXI write transaction = AW + W.
+   - Need both before updating exp_mem[].
+
+4. Update exp_mem[].
+   - Compute:
+       word_index = aw.addr >> 2;
+   - Apply WSTRB correctly (byte enables).
+   - Update only enabled bytes.
+   - This becomes the expected memory contents.
+
+5. Read response checking.
+   - On a downstream read request, remember requested address.
+   - When read response arrives:
+       expected = exp_mem[word_index]
+       actual   = RDATA
+   - Compare data (and response when appropriate).
+
+6. Timeout/fault behaviour.
+   - Verify injected SLVERR responses.
+   - Verify downstream responses are drained correctly.
+   - Ensure timeout behaviour matches SCC specification.
+
+7. Functional coverage.
+   - Read/write addresses.
+   - RESP values.
+   - WSTRB patterns.
+   - Timeout path.
+   - Recovery path.
+   - Corner cases.
+
+   /* Implement WSTRB correctly. Don’t simply do exp_mem[word_index] = data;.
+    A write may update only some bytes, so each byte should only change if its corresponding WSTRB bit is 1.
+    */
+
+=== === === === === === === === === === === === === === === === === === === == * /
