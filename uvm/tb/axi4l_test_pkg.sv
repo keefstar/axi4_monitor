@@ -10,5 +10,6 @@ package axi4l_test_pkg;
   `include "axi4l_env.sv"
   
   /*Later add unit test.sv files*/
+  `include "basic_read_test.sv"
   
 endpackage : axi4l_test_pkg
