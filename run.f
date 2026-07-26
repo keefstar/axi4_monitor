@@ -17,8 +17,9 @@
 +incdir+./rtl2
 +incdir+./uvm/axi4l_uvc
 +incdir+./uvm/axi4l_uvc/sequences
-+incdir+./uvm/test_env
 +incdir+./uvm/tb
++incdir+./uvm/tb/test_env
++incdir+./uvm/tb/unit_tests
 
 // ------------------------------------------------------------
 // Source files in compilation dependency order
