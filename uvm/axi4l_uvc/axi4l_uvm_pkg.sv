@@ -5,6 +5,11 @@ package axi4l_uvm_pkg;
   import a4lite_pkg::*;
   import uvm_pkg::*;
   `include "uvm_macros.svh"
+
+   typedef enum {
+    AXI4L_MANAGER,
+    AXI4L_SUBORDINATE
+  } axi4l_role_e;
   
   /* configuration must appear before agent if agent is to use it*/
   `include "axi4l_agent_cfg.sv"

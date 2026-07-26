@@ -46,7 +46,7 @@ class axi4l_monitor extends uvm_monitor;
         
         read_tr.addr = vif.mon_cb.ar.addr;
         read_tr.prot = vif.mon_cb.ar.prot;
-        read_tr.kind = READ_REQUEST;
+        read_tr.kind = axi4l_read_item::READ_REQUEST;
         
         read_ap.write(read_tr);
         
@@ -58,7 +58,7 @@ class axi4l_monitor extends uvm_monitor;
         
         read_tr.data = vif.mon_cb.r.data;
         read_tr.resp = vif.mon_cb.r.resp;
-        read_tr.kind = READ_RESPONSE;
+        read_tr.kind = axi4l_read_item::READ_RESPONSE;
         
         read_ap.write(read_tr);
       end
@@ -69,7 +69,7 @@ class axi4l_monitor extends uvm_monitor;
         
         write_tr.addr = vif.mon_cb.aw.addr;
         write_tr.prot = vif.mon_cb.aw.prot;
-        write_tr.kind = WRITE_ADDRESS;
+        write_tr.kind = axi4l_write_item::WRITE_ADDRESS;
         
         write_ap.write(write_tr);
       end
@@ -81,7 +81,7 @@ class axi4l_monitor extends uvm_monitor;
         
         write_tr.data = vif.mon_cb.w.data;
         write_tr.strb = vif.mon_cb.w.strb;
-        write_tr.kind = WRITE_DATA;
+        write_tr.kind = axi4l_write_item::WRITE_DATA;
         
         write_ap.write(write_tr);
       end
@@ -92,7 +92,7 @@ class axi4l_monitor extends uvm_monitor;
         write_tr = axi4l_write_item::type_id::create("write_response_tr");
         
         write_tr.resp = vif.mon_cb.b.resp;
-        write_tr.kind = WRITE_RESPONSE;
+        write_tr.kind = axi4l_write_item::WRITE_RESPONSE;
         
         write_ap.write(write_tr);
         

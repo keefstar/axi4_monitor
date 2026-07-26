@@ -1,0 +1,26 @@
+#e1(16Jul2026:20:08:44): source ./xcelium.d/env.d/env.history.16Jul2026_20_08_44
+s1(16Jul2026:20:08:44):  xrun -sv rtl2/a4lite_pkg.sv rtl2/axi4l_if.sv rtl2/rd_queue.sv sim/rd_queue_sva.sv sim/tb_rd_queue.sv -top tb_rd_queue 
+#e2(17Jul2026:13:40:21): source ./xcelium.d/env.d/env.history.17Jul2026_13_40_21
+s2(17Jul2026:13:40:21):  xrun -sv a4lite_pkg.sv axi4l_if.sv rd_queue.sv ../sim/rd_queue_sva.sv ../sim/tb_rd_queue.sv -top tb_rd_queue -access +rwc -gui 
+#e3(25Jul2026:14:18:13): source ./xcelium.d/env.d/env.history.25Jul2026_14_18_13
+s3(25Jul2026:14:18:13):  xrun -f run.f 
+#e4(25Jul2026:14:20:26): source ./xcelium.d/env.d/env.history.25Jul2026_14_20_26
+s4(25Jul2026:14:20:26):  xrun -f run.f 
+#e5(25Jul2026:14:32:00): source ./xcelium.d/env.d/env.history.25Jul2026_14_32_00
+s5(25Jul2026:14:32:00):  xrun -f run.f 
+#e6(25Jul2026:14:33:59): source ./xcelium.d/env.d/env.history.25Jul2026_14_33_59
+s6(25Jul2026:14:33:59):  xrun -f run.f 
+#e7(25Jul2026:14:36:14): source ./xcelium.d/env.d/env.history.25Jul2026_14_36_14
+s7(25Jul2026:14:36:14):  xrun -f run.f 
+#e8(25Jul2026:14:38:20): source ./xcelium.d/env.d/env.history.25Jul2026_14_38_20
+s8(25Jul2026:14:38:20):  xrun -f run.f 
+#e9(25Jul2026:14:38:31): source ./xcelium.d/env.d/env.history.25Jul2026_14_38_31
+s9(25Jul2026:14:38:31):  xrun -f run.f 
+#e10(25Jul2026:14:39:01): source ./xcelium.d/env.d/env.history.25Jul2026_14_39_01
+s10(25Jul2026:14:39:01):  xrun -f run.f 
+#e11(25Jul2026:14:39:38): source ./xcelium.d/env.d/env.history.25Jul2026_14_39_38
+s11(25Jul2026:14:39:38):  xrun -f run.f 
+#e12(25Jul2026:14:41:44): source ./xcelium.d/env.d/env.history.25Jul2026_14_41_44
+s12(25Jul2026:14:41:44):  xrun -f run.f 
+#e13(25Jul2026:14:42:24): source ./xcelium.d/env.d/env.history.25Jul2026_14_42_24
+s13(25Jul2026:14:42:24):  xrun -f run.f 

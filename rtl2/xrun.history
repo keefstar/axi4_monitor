@@ -1,0 +1,24 @@
+#e1(11Jul2026:15:12:51): source ./xcelium.d/env.d/env.history.11Jul2026_15_12_51
+s1(11Jul2026:15:12:51):  xrun -sv a4lite_pkg.sv axi4l_if.sv rd_queue.sv -elaborate 
+#e2(15Jul2026:00:34:37): source ./xcelium.d/env.d/env.history.15Jul2026_00_34_37
+s2(15Jul2026:00:34:37):  xrun -sv a4lite_pkg.sv axi4l_if.sv rd_queue.sv wr_queue.sv -elaborate 
+#e3(15Jul2026:00:35:24): source ./xcelium.d/env.d/env.history.15Jul2026_00_35_24
+s3(15Jul2026:00:35:24):  xrun -sv a4lite_pkg.sv axi4l_if.sv rd_queue.sv wr_queue.sv -elaborate 
+#e4(15Jul2026:00:37:45): source ./xcelium.d/env.d/env.history.15Jul2026_00_37_45
+s4(15Jul2026:00:37:45):  xrun -sv a4lite_pkg.sv axi4l_if.sv rd_queue.sv wr_queue.sv -elaborate 
+#e5(15Jul2026:00:38:13): source ./xcelium.d/env.d/env.history.15Jul2026_00_38_13
+s5(15Jul2026:00:38:13):  xrun -sv a4lite_pkg.sv axi4l_if.sv rd_queue.sv wr_queue.sv -elaborate 
+#e6(15Jul2026:00:38:45): source ./xcelium.d/env.d/env.history.15Jul2026_00_38_45
+s6(15Jul2026:00:38:45):  xrun -sv a4lite_pkg.sv axi4l_if.sv rd_queue.sv wr_queue.sv -elaborate 
+#e7(16Jul2026:13:18:58): source ./xcelium.d/env.d/env.history.16Jul2026_13_18_58
+s7(16Jul2026:13:18:58):  xrun -sv a4lite_pkg.sv axi4l_if.sv interrupt_ctrl.sv rd_queue.sv wr_queue.sv tp_lvl.sv -elaborate 
+#e8(16Jul2026:13:19:33): source ./xcelium.d/env.d/env.history.16Jul2026_13_19_33
+s8(16Jul2026:13:19:33):  xrun -sv a4lite_pkg.sv axi4l_if.sv interrupt_ctrl.sv rd_queue.sv wr_queue.sv tp_lvl.sv -elaborate 
+#e9(16Jul2026:20:07:27): source ./xcelium.d/env.d/env.history.16Jul2026_20_07_27
+s9(16Jul2026:20:07:27):  xrun -sv a4lite_pkg.sv axi4l_if.sv rd_queue.sv rd_queue_sva.sv tb_rd_queue.sv -top tb_rd_queue 
+#e10(17Jul2026:13:40:29): source ./xcelium.d/env.d/env.history.17Jul2026_13_40_29
+s10(17Jul2026:13:40:29):  xrun -sv a4lite_pkg.sv axi4l_if.sv rd_queue.sv ../sim/rd_queue_sva.sv ../sim/tb_rd_queue.sv -top tb_rd_queue -access +rwc -gui 
+#e11(17Jul2026:13:40:58): source ./xcelium.d/env.d/env.history.17Jul2026_13_40_58
+s11(17Jul2026:13:40:58):  xrun -sv a4lite_pkg.sv axi4l_if.sv rd_queue.sv ../sim/rd_queue_sva.sv ../sim/tb_rd_queue.sv -top tb_rd_queue -elaborate 
+#e12(17Jul2026:13:41:16): source ./xcelium.d/env.d/env.history.17Jul2026_13_41_16
+s12(17Jul2026:13:41:16):  xrun -sv -timescale 1ns/1ps a4lite_pkg.sv axi4l_if.sv rd_queue.sv ../sim/rd_queue_sva.sv ../sim/tb_rd_queue.sv -top tb_rd_queue -access +rwc 

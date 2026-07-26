@@ -6,7 +6,7 @@ class axi4l_write_item extends uvm_sequence_item;
     WRITE_DATA,
     WRITE_RESPONSE
   } axi4l_write_kind_e;
-  axi4l_write_kind_e resp;
+  axi4l_write_kind_e kind;
   
   function new(string name = "axi4l_write_item");
     super.new(name);

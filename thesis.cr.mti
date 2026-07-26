@@ -1,4 +1,28 @@
-/ubc/ece/home/ugrads/r/rkaisaan/thesis/rtl/a4lite_regulation_engine.sv {1 {vlog -work work -vopt -sv -stats=none /ubc/ece/home/ugrads/r/rkaisaan/thesis/rtl/a4lite_regulation_engine.sv
+/ubc/ece/home/ugrads/r/rkaisaan/thesis/sim/rd_queue_sva.sv {2 {vlog -work work -vopt -sv -stats=none /ubc/ece/home/ugrads/r/rkaisaan/thesis/sim/rd_queue_sva.sv
 QuestaSim-64 vlog 2022.1_2 Compiler 2022.04 Apr  2 2022
+-- Compiling package rd_queue_sva_sv_unit
+-- Importing package a4lite_pkg
+-- Compiling module rd_queue_sva
+
+Top level modules:
+** Warning: (vlog-2650) 'bind' found in compilation unit scope. Please use -cuname to ensure that 'bind' gets elaborated.
+	--none--
+
+} {} {}} /ubc/ece/home/ugrads/r/rkaisaan/thesis/rtl2/axi4l_if.sv {1 {vlog -work work -vopt -sv -stats=none /ubc/ece/home/ugrads/r/rkaisaan/thesis/rtl2/axi4l_if.sv
+QuestaSim-64 vlog 2022.1_2 Compiler 2022.04 Apr  2 2022
+-- Compiling interface axi4l_if
+-- Importing package a4lite_pkg
+
+Top level modules:
+	--none--
+
+} {} {}} /ubc/ece/home/ugrads/r/rkaisaan/thesis/rtl2/rd_queue.sv {1 {vlog -work work -vopt -sv -stats=none /ubc/ece/home/ugrads/r/rkaisaan/thesis/rtl2/rd_queue.sv
+QuestaSim-64 vlog 2022.1_2 Compiler 2022.04 Apr  2 2022
+-- Compiling package rd_queue_sv_unit
+-- Importing package a4lite_pkg
+-- Compiling module rd_queue
+
+Top level modules:
+	rd_queue
 
 } {} {}}

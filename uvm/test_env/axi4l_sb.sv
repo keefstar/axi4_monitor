@@ -44,7 +44,7 @@ class axi4l_sb extends uvm_scoreboard;
     downstream_read_imp = new("downstream_read_imp", this);
     upstream_write_imp = new("upstream_write_imp", this);
     downstream_write_imp = new("downstream_write_imp", this);
-  endfunction : new
+  endfunction 
   
   /* write only sends a reference - pointer to packet instance */
   /* monitor may use the same instance fro every collected pocket */
@@ -60,9 +60,9 @@ class axi4l_sb extends uvm_scoreboard;
     /* cast treat the returned generic handle as axi4l_read_item*/
     assert ($cast(tr_copy, tr.clone())) else `uvm_fatal("CAST FAIL", "Failed to clone upstream read")
     case (tr_copy.kind)
-      READ_REQUEST: upstream_read_req_q.push_back(tr_copy);
-      READ_RESPONSE: upstream_read_resp_q.push_back(tr_copy);
-      default: `uvm_fatal("SB_ERROR", "Unknown upstream read transaction category");
+      axi4l_read_item::READ_REQUEST: upstream_read_req_q.push_back(tr_copy);
+      axi4l_read_item::READ_RESPONSE: upstream_read_resp_q.push_back(tr_copy);
+      default: `uvm_fatal("SB_ERROR", "Unknown upstream read transaction category")
     endcase
   endfunction : write_upstream_read
   
@@ -70,12 +70,12 @@ class axi4l_sb extends uvm_scoreboard;
     axi4l_read_item tr_copy;
     assert ($cast(tr_copy, tr.clone())) else `uvm_fatal("CAST FAIL", "Failed to clone downstream read")
     case (tr_copy.kind)
-      READ_REQUEST: begin
+      axi4l_read_item::READ_REQUEST: begin
         downstream_read_req_q.push_back(tr_copy);
         check_read_request(); /* a valid downstream request must originate from an already accepted upstream request. */
       end
-      READ_RESPONSE: downstream_read_resp_q.push_back(tr_copy);
-      default: `uvm_fatal("SB_ERROR", "Unknown downstream read transaction category");
+      axi4l_read_item::READ_RESPONSE: downstream_read_resp_q.push_back(tr_copy);
+      default: `uvm_fatal("SB_ERROR", "Unknown downstream read transaction category")
     endcase
   endfunction : write_downstream_read
   
@@ -83,10 +83,10 @@ class axi4l_sb extends uvm_scoreboard;
     axi4l_write_item tr_copy;
     assert ($cast(tr_copy, tr.clone())) else `uvm_fatal("CAST FAIL", "Failed to clone upstream write")
     case (tr_copy.kind)
-      WRITE_ADDRESS: upstream_aw_q.push_back(tr_copy);
-      WRITE_DATA: upstream_w_q.push_back(tr_copy);
-      WRITE_RESPONSE: upstream_b_q.push_back(tr_copy);
-      default: `uvm_fatal("SB_ERROR", "Unknown upstream write transaction category");
+      axi4l_write_item::WRITE_ADDRESS: upstream_aw_q.push_back(tr_copy);
+      axi4l_write_item::WRITE_DATA: upstream_w_q.push_back(tr_copy);
+      axi4l_write_item::WRITE_RESPONSE: upstream_b_q.push_back(tr_copy);
+      default: `uvm_fatal("SB_ERROR", "Unknown upstream write transaction category")
     endcase
   endfunction : write_upstream_write
   
@@ -94,16 +94,16 @@ class axi4l_sb extends uvm_scoreboard;
     axi4l_write_item tr_copy;
     assert ($cast(tr_copy, tr.clone())) else `uvm_fatal("CAST FAIL", "Failed to clone downstream write")
     case (tr_copy.kind)
-      WRITE_ADDRESS: begin
+      axi4l_write_item::WRITE_ADDRESS: begin
         downstream_aw_q.push_back(tr_copy);
         check_write_address();
       end
-      WRITE_DATA: begin
+      axi4l_write_item::WRITE_DATA: begin
         downstream_w_q.push_back(tr_copy);
         check_write_data();
       end
-      WRITE_RESPONSE: downstream_b_q.push_back(tr_copy);
-      default: `uvm_fatal("SB_ERROR", "Unknown downsteam write transaction category");
+      axi4l_write_item::WRITE_RESPONSE: downstream_b_q.push_back(tr_copy);
+      default: `uvm_fatal("SB_ERROR", "Unknown downsteam write transaction category")
     endcase
   endfunction : write_downstream_write
   
@@ -168,60 +168,3 @@ class axi4l_sb extends uvm_scoreboard;
   endfunction : check_write_data
 endclass : axi4l_sb
 
-
-
-/* for tmr:
-impelement the comparision functions
-implement the RAM  model*/
-
-/* ==================== SCOREBOARD TODO ====================
-
-1. Compile and run one simple smoke test.
-   - Verify monitor publishes transactions correctly.
-   - Verify scoreboard receives them.
-   - Ensure check_read_request(), check_write_address(), and
-     check_write_data() all pass for a normal forwarding case.
-
-2. Reference RAM model.
-   - Create an independent memory prediction model.
-   - This stores what the DUT memory SHOULD contain.
-   - Never read the DUT's internal memory.
-
-3. Pair verified AW + W transactions.
-   - AW provides address.
-   - W provides data + strobes.
-   - One AXI write transaction = AW + W.
-   - Need both before updating exp_mem[].
-
-4. Update exp_mem[].
-   - Compute:
-       word_index = aw.addr >> 2;
-   - Apply WSTRB correctly (byte enables).
-   - Update only enabled bytes.
-   - This becomes the expected memory contents.
-
-5. Read response checking.
-   - On a downstream read request, remember requested address.
-   - When read response arrives:
-       expected = exp_mem[word_index]
-       actual   = RDATA
-   - Compare data (and response when appropriate).
-
-6. Timeout/fault behaviour.
-   - Verify injected SLVERR responses.
-   - Verify downstream responses are drained correctly.
-   - Ensure timeout behaviour matches SCC specification.
-
-7. Functional coverage.
-   - Read/write addresses.
-   - RESP values.
-   - WSTRB patterns.
-   - Timeout path.
-   - Recovery path.
-   - Corner cases.
-
-   /* Implement WSTRB correctly. Don’t simply do exp_mem[word_index] = data;.
-    A write may update only some bytes, so each byte should only change if its corresponding WSTRB bit is 1.
-    */
-
-=== === === === === === === === === === === === === === === === === === === == * /

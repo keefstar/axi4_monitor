@@ -187,13 +187,14 @@ class axi4l_read_item extends uvm_sequence_item; /*inherit from uvm_sequence_ite
   
 endclass : axi4l_read_item
 
-/* subclasses for speciifc testing plans */
+/*
+//subclasses for speciifc testing plans 
 class axi4l_mapped_region_read extends axi4l_read_item;
   constraint mapped_region_c {
     addr inside {[ADDR_MIN:ADDR_MAX]};
   }
 endclass
-
+*/
 
 
 /* note for subclass layering constriants; if we have a constriant in sub class with same name as in parent class, it will override parent constriant */

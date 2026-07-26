@@ -1,0 +1,19 @@
+//
+// File created by:  xrun
+// Do not modify this file
+//
+-sv
+-timescale
+1ns/1ps
+a4lite_pkg.sv
+axi4l_if.sv
+rd_queue.sv
+../sim/rd_queue_sva.sv
+../sim/tb_rd_queue.sv
+-top
+tb_rd_queue
+-access
++rwc
+-assert_count_traces
+-l
+rd.log

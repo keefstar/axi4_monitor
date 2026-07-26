@@ -186,3 +186,65 @@ module A module B
       
       2.Fake RAM stores:
       mem[0 x40] = 0 xDEADBEEF 3.Later issue READ address 0 x100 4.Fake RAM returns: RDATA = 0 xDEADBEEF 5.SCC forwards it upstream 6.Scoreboard checks: expected = 0 xDEADBEEF actual = 0 xDEADBEEF PASS Elegant design idea: READ verification: expected data comes from reference memory WRITE verification: update reference memory Normal operation: compare SCC forwarding and responses Fault operation: predict SLVERR / containment behaviour Recovery: verify transactions resume correctly 3) Kill the XOR idea: A memory - backed subordinate instead remembers writes: WRITE: 0 x100 ← DEADBEEF RAM now remembers: mem[0 x100] = DEADBEEF Later -> READ 0 x100 ↓ RAM looks up what was stored ↓ returns DEADBEEF
+
+
+      SCOREBOARD TO DO JULY 25 2026:
+
+
+/* for tmr:
+impelement the comparision functions
+implement the RAM  model
+
+/* ==================== SCOREBOARD TODO ====================
+
+1. Compile and run one simple smoke test.
+   - Verify monitor publishes transactions correctly.
+   - Verify scoreboard receives them.
+   - Ensure check_read_request(), check_write_address(), and
+     check_write_data() all pass for a normal forwarding case.
+
+2. Reference RAM model.
+   - Create an independent memory prediction model.
+   - This stores what the DUT memory SHOULD contain.
+   - Never read the DUT's internal memory.
+
+3. Pair verified AW + W transactions.
+   - AW provides address.
+   - W provides data + strobes.
+   - One AXI write transaction = AW + W.
+   - Need both before updating exp_mem[].
+
+4. Update exp_mem[].
+   - Compute:
+       word_index = aw.addr >> 2;
+   - Apply WSTRB correctly (byte enables).
+   - Update only enabled bytes.
+   - This becomes the expected memory contents.
+
+5. Read response checking.
+   - On a downstream read request, remember requested address.
+   - When read response arrives:
+       expected = exp_mem[word_index]
+       actual   = RDATA
+   - Compare data (and response when appropriate).
+
+6. Timeout/fault behaviour.
+   - Verify injected SLVERR responses.
+   - Verify downstream responses are drained correctly.
+   - Ensure timeout behaviour matches SCC specification.
+
+7. Functional coverage.
+   - Read/write addresses.
+   - RESP values.
+   - WSTRB patterns.
+   - Timeout path.
+   - Recovery path.
+   - Corner cases.
+
+
+   /* Implement WSTRB correctly. Don’t simply do exp_mem[word_index] = data;.
+    A write may update only some bytes, so each byte should only change if its corresponding WSTRB bit is 1.
+    */
+
+
+*/
