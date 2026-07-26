@@ -6,6 +6,10 @@ class basic_read_test extends base_test;
   axi4l_read_sequencer read_sqr;
   axi4l_read_seq read_seq;
   
+  function new(string name = "basic_read_test", uvm_component parent = null);
+    super.new(name, parent);
+  endfunction
+  
   function void build_phase(uvm_phase phase);
     /*A sequence is a temporary scenario object created by the test when needed.*/
     /* hence create here and connect sequencer handle to UVC sequencer instance in connect_phase*/
