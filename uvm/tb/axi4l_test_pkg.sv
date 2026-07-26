@@ -10,6 +10,8 @@ package axi4l_test_pkg;
   `include "axi4l_env.sv"
   
   /*Later add unit test.sv files*/
+  `include "base_test.sv" /* for all unit tests; the backbone*/
+  
   `include "basic_read_test.sv"
   
 endpackage : axi4l_test_pkg

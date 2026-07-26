@@ -34,3 +34,5 @@ s16(25Jul2026:23:12:52):  xrun -f run.f +UVM_TESTNAME=basic_read_test
 s17(25Jul2026:23:14:32):  xrun -f run.f +UVM_TESTNAME=basic_read_test 
 #e18(25Jul2026:23:14:59): source ./xcelium.d/env.d/env.history.25Jul2026_23_14_59
 s18(25Jul2026:23:14:59):  xrun -f run.f +UVM_TESTNAME=basic_read_test 
+#e19(25Jul2026:23:16:29): source ./xcelium.d/env.d/env.history.25Jul2026_23_16_29
+s19(25Jul2026:23:16:29):  xrun -f run.f +UVM_TESTNAME=basic_read_test 
