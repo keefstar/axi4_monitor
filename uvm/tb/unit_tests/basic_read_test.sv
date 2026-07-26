@@ -4,7 +4,7 @@ class basic_read_test extends base_test;
   `uvm_component_utils(basic_read_test)
   
   axi4l_read_sequencer read_sqr;
-  axi4l_read_sequence read_seq;
+  axi4l_read_seq read_seq;
   
   function void build_phase(uvm_phase phase);
     /*A sequence is a temporary scenario object created by the test when needed.*/
