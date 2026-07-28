@@ -1,54 +1,59 @@
-class axi4l_read_seq extends uvm_sequence#(axi4l_read_item);
-  `uvm_object_utils(axi4l_read_seq)
+/* manager read sequence tells the upstream driver what read request to send */
+/* controls request-side fielfs such as ADDR, PROT, RREADY selay*/
+class axi4l_manager_read_seq extends uvm_sequence#(axi4l_read_item);
+  /* The base uvm_sequence class is written generically so it can handle any type of transaction item. 
+  By using #, you tell the base sequence exactly what 
+  kind of sequence item (or sequence item type) this specific sequence will generate and process*/
+
+  `uvm_object_utils(axi4l_manager_read_seq) 
   
-  function new(string name = "axi4l_read_seq");
+  function new(string name = "axi4l_manager_read_seq");
     super.new(name);
   endfunction
-  
+
   virtual task body();
-    `uvm_info(
-      get_type_name(),
-      "Starting AXI4-Lite Read Sequence",
-      UVM_LOW
-    )
-    
-    req = axi4l_read_item::type_id::create("req"); /* explicilt creation via UVM factor*/
-    start_item(req); /* sequencer, I have AXI trransaction i want to send. tell me when you are ready.*/
-    assert (req.randomize())
-    else
-      `uvm_fatal(
-        get_type_name(),
-        "axi4l_read_item randomization failed"
-      )
-    
-    finish_item(req); /* This sends the ready transaction to the driver and waits for the driver to complete handling it.*/
-  endtask
-  
-  /* sequence-level rand properties 
-   rand int unsigned num_reads;
-   // Controls how many read transactions the sequence generates.
-   // Useful for exercising different queue occupancies from 1 to DEPTH,
-   // including near-full and full-capacity behavior.
 
-   rand logic [ADDR_WIDTH-1:0] base_addr;
-   // Gives multiple transactions in the sequence a related starting address.
-   // Useful for generating patterns such as:
-   // base_addr, base_addr + 4, base_addr + 8, etc.
-
-   rand int unsigned stall_cycles;
-   // Controls how long the simulated downstream subordinate withholds a response.
-   // Useful for testing:
-   //   stall < TIMEOUT_COUNTER
-   //   stall around the timeout boundary
-   //   stall > TIMEOUT_COUNTER
-   // This likely belongs in a downstream/response-oriented sequence,
-   // depending on the final agent architecture.
-
-   Other possible scenario-level rand properties:
-   // - number of outstanding requests to build before intentionally stalling
-   // - whether to deliberately target timeout-boundary cases
-   // - whether addresses are repeated, random, or sequential across the sequence
-*/
+    `uvm_info(get_type_name(), "Upstream AXI4-Lite Read Sequence", UVM_LOW)
+    req = axi4l_read_item::type_id::create("req");
+    start_item(req); /* initiate a transaction with a driver; blocking call that manages handshake between seqence and sequencer */
   
-  
-endclass : axi4l_read_seq
+    /* Manager and subordinate share one axi4l_read_item; disavle fields that do not belong in corresponding role*/
+    req.arready_delay.rand_mode(0); /* would be asserted by SUB*/
+    req.rrvalid_delay.rand_mode(0); /* would be asserted by SUB*/
+
+    assert(req.randomize())
+    else `uvm_fatal(get_type_name(), "Manager read item randomization failed")
+
+    finish_item(req) /* send sequence item to the driver and waits until driver finishes processing it*/
+  endtask : body
+
+endclass : axi4l_manager_read_seq;
+
+class axi4l_subordinate_read_seq extends uvm_sequence#(axi4l_read_item);
+
+  `uvm_object_utils(axi4l_subordinate_read_seq)
+
+  function new(string name = "axi4l_subordinate_read_seq");
+    super.new(name);
+  endfunction
+
+    virtual task body();
+
+    `uvm_info(get_type_name(), "Downstream AXI4-Lite Read Sequence", UVM_LOW)
+    req = axi4l_read_item::type_id::create("req");
+    start_item(req);
+
+    req.addr.rand_mode(0);
+    req.prot.rand_mode(0);
+    req.ar_delay.rand_mode(0);
+    req.rready_delay.rand_mode(0);
+
+    assert(req.randomize())
+    else `uvm_fatal(get_type_name(), "Subordinate read item randomization failed")
+
+    finish_item(req);
+
+    endtask : body
+
+
+endclass : axi4l_subordinate_read_seq
