@@ -9,10 +9,20 @@ module tb_top;
   import axi4l_test_pkg::*;
   
   logic clk, aresetn;
+  logic [NUM_FAULT_SOURCES-1:0] enable_reg;
+  logic [NUM_FAULT_SOURCES-1:0] clear_reg;
+  logic irq;
+  logic [NUM_FAULT_SOURCES-1:0] status_reg;
+  logic guard_busy;
   /* real AXI4-Lite interfaces*/
   /* instantiate two interfaces because the actual DUT has two differnet buses*/
   axi4l_if upstream_if(.clk(clk), .aresetn(aresetn));
   axi4l_if downstream_if(.clk(clk), .aresetn(aresetn));
+
+  initial begin
+  enable_reg = '1;
+  clear_reg  = '0;
+  end
   
   /* reset generation*/
   initial begin
@@ -20,6 +30,30 @@ module tb_top;
     repeat (5) @(posedge clk);
     aresetn = 1'b1;
   end
+
+  tp_lvl dut (
+  .clk        (clk),
+  .rst_n      (aresetn),
+
+  /*
+   * DUT upstream side acts as an AXI subordinate.
+   * Connect it to the interface driven by the upstream manager agent.
+   */
+  .s          (upstream_if),
+
+  /*
+   * DUT downstream side acts as an AXI manager.
+   * Connect it to the interface driven by the downstream subordinate agent.
+   */
+  .m          (downstream_if),
+
+  .enable_reg (enable_reg),
+  .clear_reg  (clear_reg),
+  .irq        (irq),
+  .status_reg (status_reg),
+  .guard_busy (guard_busy)
+);
+
   
   /* clock generator*/
   initial begin

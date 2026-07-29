@@ -68,7 +68,8 @@ class axi4l_read_driver extends uvm_driver#(axi4l_read_item); /* this driver con
     do begin
       @(vif.mon_cb);
     end
-    while (!vif.mon_cb.arready); /* Read the value of arready as sampled by the clocking block*/
+    /* KEEP WAITING UNTL BOTH VALID AND READY ARE DEFINITELY 1 (AVOID 0 and X CASES)*/
+    while (!(vif.mon_cb.arvalid === 1'b1 && vif.mon_cb.arready === 1'b1)); /* Read the value of arready as sampled by the clocking block*/
     
     /* request was accepted; can deassert ARVALID by manager*/
     vif.arvalid <= 1'b0;
@@ -82,7 +83,7 @@ class axi4l_read_driver extends uvm_driver#(axi4l_read_item); /* this driver con
     /* wait until R handhsake occurs*/
     do begin
       @(vif.mon_cb);
-    end while (!vif.mon_cb.rvalid);
+    end while (!(vif.mon_cb.rvalid === 1'b1 &&  vif.mon_cb.rready === 1'b1));
     
     /* capture the sampled resopnse*/
     item.data = vif.mon_cb.r.data;
@@ -103,25 +104,46 @@ class axi4l_read_driver extends uvm_driver#(axi4l_read_item); /* this driver con
     /* wait to recieve valid AR signal from manager*/
     do begin
       @(vif.mon_cb);
-    end while (!vif.mon_cb.arvalid);
+    end while (vif.mon_cb.arvalid !== 1'b1);
     
     /* complete specified/randomized delays*/
     repeat (item.arready_delay)
       @(vif.mon_cb);
     vif.arready <= 1'b1; /* drive its willingness to accept AR data; AR handshake complete*/
-    @(vif.mon_cb); /* wait for clk edge where AR handshake is official */
+
+    do begin
+      @(vif.mon_cb);
+    end while (
+      !(vif.mon_cb.arvalid === 1'b1 && vif.mon_cb.arready === 1'b1)
+    );
+    
     /* observe/obtain the driven data from manager*/
     item.addr = vif.mon_cb.ar.addr;
     item.prot = vif.mon_cb.ar.prot;
     /* subordinate is able to de-assert ARREADY*/
     vif.arready <= 1'b0;
     /* AXI technically allows ARREADY to be asserted before ARVALID*/
+
+    `uvm_info("SUB_RD", "Passed AR handshake", UVM_LOW)
     
+    `uvm_info("SUB_RD", "Passed AR handshake", UVM_LOW)
+
     item.data = pattern(item.addr);
-    /* complete delay for ARREADY*/
+
+    `uvm_info(
+      "SUB_RD",
+      $sformatf(
+        "Waiting rvalid_delay=%0d cycles",
+        item.rvalid_delay
+      ),
+      UVM_LOW
+    )
+
     repeat (item.rvalid_delay)
       @(vif.mon_cb);
-    
+
+    `uvm_info("SUB_RD", "Now asserting RVALID", UVM_LOW)
+
     vif.r.data <= item.data;
     vif.r.resp <= RESP_OKAY;
     vif.rvalid <= 1'b1;
@@ -129,7 +151,7 @@ class axi4l_read_driver extends uvm_driver#(axi4l_read_item); /* this driver con
     /* VALID must not depend on READY; otherwise, deadlock*/
     do begin
       @(vif.mon_cb);
-    end while (!vif.mon_cb.rready);
+    end while (!(vif.mon_cb.rvalid === 1'b1 && vif.mon_cb.rready === 1'b1));
     
     /* R handshake completed */
     vif.rvalid <= 1'b0;

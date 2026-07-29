@@ -18,16 +18,15 @@ class axi4l_manager_read_seq extends uvm_sequence#(axi4l_read_item);
     start_item(req); /* initiate a transaction with a driver; blocking call that manages handshake between seqence and sequencer */
   
     /* Manager and subordinate share one axi4l_read_item; disavle fields that do not belong in corresponding role*/
-    req.arready_delay.rand_mode(0); /* would be asserted by SUB*/
-    req.rrvalid_delay.rand_mode(0); /* would be asserted by SUB*/
+    req.configure_for_manager();
 
     assert(req.randomize())
     else `uvm_fatal(get_type_name(), "Manager read item randomization failed")
 
-    finish_item(req) /* send sequence item to the driver and waits until driver finishes processing it*/
-  endtask : body
+    finish_item(req); /* send sequence item to the driver and waits until driver finishes processing it*/
+  endtask
 
-endclass : axi4l_manager_read_seq;
+endclass : axi4l_manager_read_seq
 
 class axi4l_subordinate_read_seq extends uvm_sequence#(axi4l_read_item);
 
@@ -42,18 +41,15 @@ class axi4l_subordinate_read_seq extends uvm_sequence#(axi4l_read_item);
     `uvm_info(get_type_name(), "Downstream AXI4-Lite Read Sequence", UVM_LOW)
     req = axi4l_read_item::type_id::create("req");
     start_item(req);
-
-    req.addr.rand_mode(0);
-    req.prot.rand_mode(0);
-    req.ar_delay.rand_mode(0);
-    req.rready_delay.rand_mode(0);
+    
+    req.configure_for_subordinate();
 
     assert(req.randomize())
     else `uvm_fatal(get_type_name(), "Subordinate read item randomization failed")
 
     finish_item(req);
 
-    endtask : body
+    endtask
 
 
 endclass : axi4l_subordinate_read_seq
