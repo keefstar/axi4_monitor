@@ -23,7 +23,7 @@ class axi4l_read_driver extends uvm_driver#(axi4l_read_item); /* this driver con
     end
 
     if (role == AXI4L_SUBORDINATE) begin
-      uvm_config_db#(axi4l_sub_mem)::get(this,"","mem_model",mem_model)
+      uvm_config_db#(axi4l_sub_mem)::get(this,"","mem_model",mem_model);
     end
   endfunction
   
