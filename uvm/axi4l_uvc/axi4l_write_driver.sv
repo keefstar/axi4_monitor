@@ -6,6 +6,7 @@ class axi4l_write_driver extends uvm_driver#(axi4l_write_item); /* this driver c
   
   virtual axi4l_if vif; /* handle to real AXI4-Lite interrace*/
   axi4l_role_e role; /* tell driver which side it is acting as (MANAGER or subordinate?)*/
+  axi4l_sub_mem mem_model; /* MEMORY MODEL FOR TESTING*/
   
   function new(string name, uvm_component parent);
     super.new(name, parent);
@@ -18,6 +19,9 @@ class axi4l_write_driver extends uvm_driver#(axi4l_write_item); /* this driver c
     end
     if (!uvm_config_db#(axi4l_role_e)::get(this, "", "role", role)) begin
       `uvm_fatal("NOROLE", "axi4l_write_driver could not get AXI4-Lite role")
+    end
+    if (!uvm_config_db#(axi4l_sub_mem)::get(this, "", "mem_model", mem_model)) begin
+       `uvm_fatal("NOMEM", "axi4l_read_driver could not get memory model")
     end
   endfunction
   
