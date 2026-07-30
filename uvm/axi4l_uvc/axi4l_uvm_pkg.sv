@@ -16,6 +16,8 @@ package axi4l_uvm_pkg;
   /* transactions*/
   `include "axi4l_read_item.sv"
   `include "axi4l_write_item.sv"
+  /* memory model */
+  `include "axi4l_sub_mem.sv"
   /* sequencers*/
   `include "axi4l_read_sequencer.sv"
   `include "axi4l_write_sequencer.sv"
@@ -25,7 +27,8 @@ package axi4l_uvm_pkg;
   /* monitor */
   `include "axi4l_monitor.sv"
   /* agent*/
-  `include "axi4l_agent.sv"
+  `include "axi4l_manager_agent.sv"
+  `include "axi4l_subordinate_agent.sv"
   /* sequences (just needs to come after sequencers) */
   `include "sequences/axi4l_read_seq.sv"
   `include "sequences/axi4l_write_seq.sv"

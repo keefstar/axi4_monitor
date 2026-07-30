@@ -1,4 +1,4 @@
-class axi4l_agent extends uvm_agent; /* agents cannot be paramaterized*/
+class axi4l_manager_agent extends uvm_agent; /* agents cannot be paramaterized*/
   /*
    * uvm_agent provides a built-in is_active switch of type
    * uvm_active_passive_enum. UVM_ACTIVE means this agent creates/drives
@@ -6,7 +6,7 @@ class axi4l_agent extends uvm_agent; /* agents cannot be paramaterized*/
    * Do not redeclare is_active here -- it is inherited from uvm_agent.
    */
   
-  axi4l_role_e role = AXI4L_MANAGER;
+ //axi4l_role_e role = AXI4L_MANAGER;
   
   /* handles for our subcomponents (sequencer, driver, monitor); need to instantaite and connect in build/connect phase methods */
   axi4l_read_driver read_driver;
@@ -15,7 +15,7 @@ class axi4l_agent extends uvm_agent; /* agents cannot be paramaterized*/
   axi4l_write_sequencer write_sequencer;
   axi4l_monitor monitor;
   
-  `uvm_component_utils_begin(axi4l_agent)
+  `uvm_component_utils_begin(axi4l_manager_agent)
   `uvm_field_enum(uvm_active_passive_enum, is_active, UVM_ALL_ON)
   `uvm_component_utils_end
   
@@ -29,16 +29,19 @@ class axi4l_agent extends uvm_agent; /* agents cannot be paramaterized*/
   virtual function void build_phase(uvm_phase phase);
     /* agent sub components are created in build */
     super.build_phase(phase); /* super.build_phase(phase); calls the parent class's build_phase first so it can do its generic UVM setup; then this child class adds its own component-specific build logic.*/
-    /* Try to get this agent’s configured AXI role from the UVM config database and store it in role.”*/
-    if (!uvm_config_db#(axi4l_role_e)::get(this, "", "role", role)) begin
-      `uvm_info( "CFG", "No role configured, defaulting to AXI4L_MANAGER",UVM_LOW )
-    end /* void because if fail, by default drop to manager*/
-    `uvm_info(
-    "CFG",
-    $sformatf("Configured AXI role = %s",
-        (role == AXI4L_MANAGER) ?
-        "MANAGER" : "SUBORDINATE"),
-    UVM_LOW)
+
+    uvm_config_db#(axi4l_role_e)::set(
+    this,
+    "read_driver",
+    "role",
+    AXI4L_MANAGER );
+
+    uvm_config_db#(axi4l_role_e)::set(
+    this,
+    "write_driver",
+    "role",
+    AXI4L_MANAGER);
+
     monitor = axi4l_monitor::type_id::create("monitor", this);
     if (is_active == UVM_ACTIVE) begin /* “Only create traffic-generating machinery if this AXI agent is configured as active.”*/
       read_sequencer = axi4l_read_sequencer::type_id::create("read_sequencer", this);
@@ -61,4 +64,4 @@ class axi4l_agent extends uvm_agent; /* agents cannot be paramaterized*/
       write_driver.seq_item_port.connect(write_sequencer.seq_item_export);
     end
   endfunction
-endclass : axi4l_agent
+endclass : axi4l_manager_agent

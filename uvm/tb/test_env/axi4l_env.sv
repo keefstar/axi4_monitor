@@ -8,8 +8,8 @@ class axi4l_env extends uvm_env;
   `uvm_component_utils(axi4l_env)
   
   /* instantiate agents */
-  axi4l_agent upstream_agent;
-  axi4l_agent downstream_agent;
+  axi4l_manager_agent upstream_agent;
+  axi4l_subordinate_agent downstream_agent;
   /* add scoreboard*/
   axi4l_sb sb;
   
@@ -19,8 +19,8 @@ class axi4l_env extends uvm_env;
   
   virtual function void build_phase(uvm_phase phase);
     super.build_phase(phase);
-    upstream_agent = axi4l_agent::type_id::create("upstream_agent", this);
-    downstream_agent = axi4l_agent::type_id::create("downstream_agent", this);
+    upstream_agent = axi4l_manager_agent::type_id::create("upstream_agent", this);
+    downstream_agent = axi4l_subordinate_agent::type_id::create("downstream_agent", this);
     sb = axi4l_sb::type_id::create("sb", this);
   endfunction : build_phase
   

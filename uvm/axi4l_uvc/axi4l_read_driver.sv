@@ -5,6 +5,7 @@ class axi4l_read_driver extends uvm_driver#(axi4l_read_item); /* this driver con
   
   virtual axi4l_if vif; /* handle to real AXI4-Lite interrace*/
   axi4l_role_e role; /* tell driver which side it is acting as (MANAGER or subordinate?)*/
+  axi4l_sub_mem mem_model;
   
   function new(string name, uvm_component parent);
     super.new(name, parent);
@@ -19,6 +20,10 @@ class axi4l_read_driver extends uvm_driver#(axi4l_read_item); /* this driver con
     end
     if (!uvm_config_db#(axi4l_role_e)::get(this, "", "role", role)) begin
       `uvm_fatal("NOROLE", "axi4l_read_driver could not get AXI4-Lite role")
+    end
+
+    if (role == AXI4L_SUBORDINATE) begin
+      uvm_config_db#(axi4l_sub_mem)::get(this,"","mem_model",mem_model)
     end
   endfunction
   
@@ -126,9 +131,8 @@ class axi4l_read_driver extends uvm_driver#(axi4l_read_item); /* this driver con
 
     `uvm_info("SUB_RD", "Passed AR handshake", UVM_LOW)
     
-    `uvm_info("SUB_RD", "Passed AR handshake", UVM_LOW)
-
-    item.data = pattern(item.addr);
+    //item.data = pattern(item.addr);
+    item.data = mem_model.read(item.addr);
 
     `uvm_info(
       "SUB_RD",
@@ -145,7 +149,7 @@ class axi4l_read_driver extends uvm_driver#(axi4l_read_item); /* this driver con
     `uvm_info("SUB_RD", "Now asserting RVALID", UVM_LOW)
 
     vif.r.data <= item.data;
-    vif.r.resp <= RESP_OKAY;
+    vif.r.resp <= item.resp;
     vif.rvalid <= 1'b1;
     
     /* VALID must not depend on READY; otherwise, deadlock*/
