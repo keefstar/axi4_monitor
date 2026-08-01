@@ -50,3 +50,15 @@ csrc/
 simv*
 ucli.key
 DVEfiles/
+
+# Cadence Xcelium generated files
+xcelium.d/
+xrun.history
+xrun.log
+xrun.key
+xrun.d/
+INCA_libs/
+waves.shm/
+*.shm/
+*.log
+*.key
