@@ -92,3 +92,13 @@ s45(27Jul2026:22:55:07):  xrun -gui -f run.f +UVM_TESTNAME=basic_read_test -acce
 s46(27Jul2026:23:14:58):  xrun -gui -f run.f +UVM_TESTNAME=basic_read_test -access +rwc 
 #e47(27Jul2026:23:17:26): source ./xcelium.d/env.d/env.history.27Jul2026_23_17_26
 s47(27Jul2026:23:17:26):  xrun -gui -f run.f +UVM_TESTNAME=basic_read_test -access +rwc 
+#e48(30Jul2026:00:41:16): source ./xcelium.d/env.d/env.history.30Jul2026_00_41_16
+s48(30Jul2026:00:41:16):  xrun -f run.f 
+#e49(30Jul2026:00:43:56): source ./xcelium.d/env.d/env.history.30Jul2026_00_43_56
+s49(30Jul2026:00:43:56):  xrun -f run.f 
+#e50(30Jul2026:12:58:11): source ./xcelium.d/env.d/env.history.30Jul2026_12_58_11
+s50(30Jul2026:12:58:11):  xrun -f run.f 
+#e51(30Jul2026:13:04:04): source ./xcelium.d/env.d/env.history.30Jul2026_13_04_04
+s51(30Jul2026:13:04:04):  xrun -f run.f 
+#e52(30Jul2026:13:06:19): source ./xcelium.d/env.d/env.history.30Jul2026_13_06_19
+s52(30Jul2026:13:06:19):  xrun -f run.f 

@@ -29,7 +29,7 @@ class axi4l_subordinate_agent extends uvm_agent;
   endfunction
 
   virtual function void build_phase(uvm_phase phase);
-    super.build(phase);
+    super.build_phase(phase);
     `uvm_info( "SUB_AGENT_BUILD", "Building dedicated AXI4-Lite subordinate agent", UVM_LOW)
     
     /* create memory model*/
@@ -44,7 +44,7 @@ class axi4l_subordinate_agent extends uvm_agent;
     uvm_config_db#(axi4l_sub_mem)::set(this, "write_driver", "mem_model", mem_model);
 
     /* create monitor*/
-    monitor = axi4l_monitor::type_id::create("monitor");
+    monitor = axi4l_monitor::type_id::create("monitor", this);
 
     /* create active components*/
     if (is_active == UVM_ACTIVE) begin
