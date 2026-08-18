@@ -43,6 +43,24 @@ class axi4l_sb extends uvm_scoreboard;
   
   /* independently calculates what memory should contain based on transactions observed by the scoreboard. */
   logic[DATA_WIDTH - 1:0] exp_mem[0:255];
+
+  /* for timeout/injections */
+  bit expect_read_timeout;
+  bit expect_write_timeout; /* AW, W but no BVALID*/
+  bit expect_write_data_timeout; /* AW but no W*/
+  
+
+  function void set_expect_read_timeout(bit value);
+  expect_read_timeout = value;
+  endfunction
+
+  function void set_expect_write_timeout(bit value);
+    expect_write_timeout = value;
+  endfunction
+
+  function void set_expect_write_data_timeout(bit value);
+    expect_write_data_timeout = value;
+  endfunction
   
   function new(string name, uvm_component parent);
     super.new(name, parent);
@@ -53,6 +71,10 @@ class axi4l_sb extends uvm_scoreboard;
 
     /* INITIALIZE RAM */
     foreach (exp_mem[i]) exp_mem[i] = '0;
+    /* INITIALIZE FIELDS IF APPLICABLE*/
+    expect_read_timeout = 1'b0;
+    expect_write_timeout = 1'b0;
+    expect_write_data_timeout = 1'b0;
 
   endfunction 
   
@@ -176,6 +198,24 @@ class axi4l_sb extends uvm_scoreboard;
     int unsigned word_index;
     logic [DATA_WIDTH-1:0] expected_data;
 
+    /* timeout path */
+    if (expect_read_timeout) begin
+      if (pending_read_q.size() == 0 || upstream_read_resp_q.size() == 0) return;
+
+      request = pending_read_q.pop_front();
+      upstream_response = upstream_read_resp_q.pop_front();
+
+      if (upstream_response.resp !== RESP_SLVERR) begin 
+        `uvm_error( "READ_TIMEOUT_RESP", $sformatf( "Expected injected SLVERR for addr=0x%0h, received resp=0x%0h", request.addr, upstream_response.resp ) ) 
+      end
+      else begin 
+        `uvm_info( "READ_TIMEOUT_PASS", $sformatf( "Read timeout correctly produced upstream SLVERR at addr=0x%0h", request.addr ), UVM_LOW ) 
+      end
+      expect_read_timeout = 1'b0;
+      return;
+    end
+
+    /* normal path */
     if (pending_read_q.size() == 0 || 
         downstream_read_resp_q.size() == 0 ||
         upstream_read_resp_q.size() == 0) return;
@@ -250,6 +290,33 @@ class axi4l_sb extends uvm_scoreboard;
     axi4l_write_item upstream_response;
     int unsigned word_index;
 
+    /* timeout path */
+    if (expect_write_timeout) begin
+      /* sub intentionally withholds BVALID, so no downstream B response*/
+      if (upstream_b_q.size() == 0 || /* should hold injected SLVERR */
+       (pending_aw_q.size() == 0 || pending_w_q.size() == 0)) return;
+
+      aw_request = pending_aw_q.pop_front();
+      w_request = pending_w_q.pop_front();
+      upstream_response = upstream_b_q.pop_front();
+
+      if (upstream_response.resp !== RESP_SLVERR) begin
+        `uvm_error("WRITE_TIMEOUT_RESP", $sformatf("Expected injected SLVERR for write addr = 0x%0h, recieved resp = 0x%0h", aw_request.addr, upstream_response.resp))
+      end
+      else `uvm_info("WRITE_TIMEOUT_PASS", $sformatf("Write-response timeout correctly produced upstream SLVERR for addr: 0x0%0h", aw_request.addr), UVM_LOW)
+
+      /* mirror RAM update for scoreboard (verification environement CREATES the scenario where RAM was written - sub commited the write)*/
+      word_index = aw_request.addr >> $clog2(STRB_WIDTH);
+      for (int byte_index = 0; byte_index < STRB_WIDTH; byte_index++) begin
+        if (w_request.strb[byte_index] === 1'b1) begin
+          exp_mem[word_index][8*byte_index +: 8] = w_request.data[8*byte_index +: 8];
+        end
+      end
+      expect_write_timeout = 1'b0;
+      /* finish */
+      return;
+    end
+    /* normal path */
     if (upstream_b_q.size() == 0 || downstream_b_q.size() == 0 || 
        (pending_aw_q.size() == 0 || pending_w_q.size() == 0)) return;
 
@@ -269,7 +336,6 @@ class axi4l_sb extends uvm_scoreboard;
         end
       end      
     end
-
   endfunction : check_write_response
   
   /*

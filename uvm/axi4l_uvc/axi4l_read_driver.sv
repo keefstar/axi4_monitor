@@ -130,18 +130,21 @@ class axi4l_read_driver extends uvm_driver#(axi4l_read_item); /* this driver con
     /* AXI technically allows ARREADY to be asserted before ARVALID*/
 
     `uvm_info("SUB_RD", "Passed AR handshake", UVM_LOW)
+     //item.data = pattern(item.addr);
     
-    //item.data = pattern(item.addr);
+    /* for timeout test only: */
+    if (item.suppress_rvalid == 1'b1) begin
+      `uvm_info("SUB_RD_TIMEOUT", $sformatf("Accepted AR for addr = 0x%0h: intentinoally withhold RVALID", item.addr), UVM_LOW)
+    
+    repeat (TIMEOUT_COUNTER + 10) 
+    @(vif.mon_cb);
+    return;
+
+  end
+
     item.data = mem_model.read(item.addr);
 
-    `uvm_info(
-      "SUB_RD",
-      $sformatf(
-        "Waiting rvalid_delay=%0d cycles",
-        item.rvalid_delay
-      ),
-      UVM_LOW
-    )
+    `uvm_info("SUB_RD", $sformatf("Waiting rvalid_delay=%0d cycles", item.rvalid_delay), UVM_LOW)
 
     repeat (item.rvalid_delay)
       @(vif.mon_cb);

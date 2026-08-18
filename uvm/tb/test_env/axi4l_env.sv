@@ -12,6 +12,8 @@ class axi4l_env extends uvm_env;
   axi4l_subordinate_agent downstream_agent;
   /* add scoreboard*/
   axi4l_sb sb;
+  /* add coverage */
+  axi4l_read_protocol_coverage read_protocol_cov;
   
   function new(string name, uvm_component parent);
     super.new(name, parent);
@@ -19,8 +21,12 @@ class axi4l_env extends uvm_env;
   
   virtual function void build_phase(uvm_phase phase);
     super.build_phase(phase);
+    uvm_config_db#(axi4l_role_e)::set(this,"upstream_agent.monitor","role",AXI4L_MANAGER);
+    uvm_config_db#(axi4l_role_e)::set(this,"downstream_agent.monitor","role",AXI4L_SUBORDINATE);
+    
     upstream_agent = axi4l_manager_agent::type_id::create("upstream_agent", this);
     downstream_agent = axi4l_subordinate_agent::type_id::create("downstream_agent", this);
+    read_protocol_cov = axi4l_read_protocol_coverage::type_id::create("read_protocol_cov",this);
     sb = axi4l_sb::type_id::create("sb", this);
   endfunction : build_phase
   
@@ -39,6 +45,10 @@ class axi4l_env extends uvm_env;
     /* Downstream monitor -> Scoreboard*/
     downstream_agent.monitor.read_ap.connect(sb.downstream_read_imp);
     downstream_agent.monitor.write_ap.connect(sb.downstream_write_imp);
+
+    /* connect monitor and coverage instances*/
+    upstream_agent.monitor.read_ap.connect(read_protocol_cov.analysis_export);
+    downstream_agent.monitor.read_ap.connect(read_protocol_cov.analysis_export);
     
   endfunction : connect_phase
   

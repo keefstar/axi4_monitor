@@ -1,0 +1,25 @@
+upf_version 2.1
+
+#elaborated simulation top
+set_design_top tb_top
+
+#supply network; instantiate before supply set references
+#always-on power rail 
+create_supply_net VDD_AON
+#input power to power switch  (always avaliable)
+create_supply_net VDD_IN
+#switched output rail for sub (to control subordinate power)
+create_supply_net VDD_SW
+#ground rail
+create_supply_net VSS
+
+#create supply sets
+create_supply_set SS_AON -function {power VDD_AON} -function {ground VSS}
+create_supply_set SS_SUB -function {power VDD_SW} -function {ground VSS}
+
+#power domain creation 
+create_power_domain PD_TB -include_scope -supply {primary SS_AON}
+#always-on guard
+create_power_domain PD_AON -elements {dut} -supply {primary SS_AON}
+#switchable subordinate
+create_power_domain PD_SUB -elements {u_sub} -supply {primary SS_SUB}

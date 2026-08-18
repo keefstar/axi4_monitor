@@ -29,38 +29,70 @@ class axi4l_subordinate_agent extends uvm_agent;
   endfunction
 
   virtual function void build_phase(uvm_phase phase);
-    super.build_phase(phase);
-    `uvm_info( "SUB_AGENT_BUILD", "Building dedicated AXI4-Lite subordinate agent", UVM_LOW)
-    
-    /* create memory model*/
+  uvm_active_passive_enum configured_mode;
+
+  super.build_phase(phase);
+
+  if (uvm_config_db#(uvm_active_passive_enum)::get(
+    this, "", "is_active", configured_mode
+  ))
+    is_active = configured_mode;
+
+  `uvm_info(
+    "SUB_AGENT_BUILD",
+    $sformatf("Subordinate agent sees is_active=%s", is_active.name()),
+    UVM_LOW
+  )
+
+  /* Monitor always exists */
+  monitor = axi4l_monitor::type_id::create("monitor", this);
+
+  /* Drivers, sequencers and memory model only exist in active mode */
+  if (is_active == UVM_ACTIVE) begin
+
     mem_model = axi4l_sub_mem::type_id::create("mem_model");
-    if (mem_model == null) `uvm_fatal("NO_MEM_MODEL", "Memory model instatiation failed")
+    if (mem_model == null)
+      `uvm_fatal("NO_MEM_MODEL", "Memory model instantiation failed")
 
-    /* Provide child components with respective roles*/
-    uvm_config_db#(axi4l_role_e)::set(this, "read_driver", "role", AXI4L_SUBORDINATE); /* this: start config from this agent, read_driver: give val specifically to child instance named that, "role": this is they key the driver will use in get(), and value is the value stored*/
-    uvm_config_db#(axi4l_role_e)::set(this, "write_driver", "role", AXI4L_SUBORDINATE);
-    /* provide both drivers with a *handle/pointer* of the (shared) memory model */
-    uvm_config_db#(axi4l_sub_mem)::set(this, "read_driver", "mem_model", mem_model);
-    uvm_config_db#(axi4l_sub_mem)::set(this, "write_driver", "mem_model", mem_model);
+    uvm_config_db#(axi4l_role_e)::set(
+      this, "read_driver", "role", AXI4L_SUBORDINATE
+    );
 
-    /* create monitor*/
-    monitor = axi4l_monitor::type_id::create("monitor", this);
+    uvm_config_db#(axi4l_role_e)::set(
+      this, "write_driver", "role", AXI4L_SUBORDINATE
+    );
 
-    /* create active components*/
-    if (is_active == UVM_ACTIVE) begin
-      read_sequencer = axi4l_read_sequencer::type_id::create("read_sequencer", this);
-      read_driver = axi4l_read_driver::type_id::create("read_driver", this);
-      write_sequencer = axi4l_write_sequencer::type_id::create("write_sequencer", this);
-      write_driver = axi4l_write_driver::type_id::create("write_driver", this);
-    end
+    uvm_config_db#(axi4l_sub_mem)::set(
+      this, "read_driver", "mem_model", mem_model
+    );
 
-  endfunction : build_phase
+    uvm_config_db#(axi4l_sub_mem)::set(
+      this, "write_driver", "mem_model", mem_model
+    );
+
+    read_sequencer =
+      axi4l_read_sequencer::type_id::create("read_sequencer", this);
+
+    read_driver =
+      axi4l_read_driver::type_id::create("read_driver", this);
+
+    write_sequencer =
+      axi4l_write_sequencer::type_id::create("write_sequencer", this);
+
+    write_driver =
+      axi4l_write_driver::type_id::create("write_driver", this);
+  end
+
+endfunction : build_phase
+
 
   virtual function void connect_phase (uvm_phase phase);
     super.connect_phase(phase);
     /* TLM connection; bind sequencers to drivers*/
+  if (is_active == UVM_ACTIVE) begin
    read_driver.seq_item_port.connect(read_sequencer.seq_item_export);
    write_driver.seq_item_port.connect(write_sequencer.seq_item_export);
+  end
 
   endfunction : connect_phase
 

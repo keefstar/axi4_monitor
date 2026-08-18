@@ -25,7 +25,13 @@ class axi4l_write_driver extends uvm_driver#(axi4l_write_item); /* this driver c
   
   virtual task run_phase(uvm_phase phase);
     unique case (role)
-      AXI4L_MANAGER: {vif.awvalid, vif.wvalid, vif.bready, vif.aw, vif.w} <= '0;
+      AXI4L_MANAGER: begin
+  vif.mgr_cb.awvalid <= '0;
+  vif.mgr_cb.wvalid  <= '0;
+  vif.mgr_cb.bready  <= '0;
+  vif.mgr_cb.aw      <= '0;
+  vif.mgr_cb.w       <= '0;
+end
       AXI4L_SUBORDINATE: {vif.awready, vif.wready, vif.bvalid, vif.b} <= '0;
       default: `uvm_fatal("BADROLE","Unknown AXI4-Lite role")
     endcase
@@ -49,60 +55,173 @@ class axi4l_write_driver extends uvm_driver#(axi4l_write_item); /* this driver c
   endtask
   
   virtual task drive_manager_write(
-      axi4l_write_item item
-  );
-    /* Manager side:
-    drive AWADDR/AWPROT/AWVALID and WDATA/WSTRB/WVALID concurrently (AXI allows
-    either channel to lead), wait for both handshakes, then drive BREADY and
-    wait for BVALID/BRESP*/
+    axi4l_write_item item
+);
 
-    fork
-      /* AW channel */
-      begin
-        repeat (item.aw_delay)
-          @(vif.mon_cb);
+  /*
+   * Manager side:
+   * - Drive manager-owned signals through mgr_cb.
+   * - Sample subordinate/DUT-owned signals through mgr_cb.
+   *
+   * Manager owns:
+   *   AWVALID/AW, WVALID/W, BREADY
+   *
+   * DUT/subordinate owns:
+   *   AWREADY, WREADY, BVALID/B
+   */
 
-        vif.aw.addr <= item.addr;
-        vif.aw.prot <= item.prot;
-        vif.awvalid <= 1'b1;
+  // ----------------------------------------------------------
+  // Special case: intentionally withhold WVALID
+  // ----------------------------------------------------------
+  if (item.suppress_wvalid === 1'b1) begin
 
-        do begin
-          @(vif.mon_cb);
-        end while (!(vif.mon_cb.awvalid === 1'b1 && vif.mon_cb.awready === 1'b1));
+    repeat (item.aw_delay)
+      @(vif.mgr_cb);
 
-        vif.awvalid <= 1'b0;
-      end
-      /* W channel */
-      begin
-        repeat (item.w_delay)
-          @(vif.mon_cb);
+    // Drive AW request
+    vif.mgr_cb.aw.addr  <= item.addr;
+    vif.mgr_cb.aw.prot  <= item.prot;
+    vif.mgr_cb.awvalid  <= 1'b1;
 
-        vif.w.data <= item.data;
-        vif.w.strb <= item.strb;
-        vif.wvalid <= 1'b1;
-
-        do begin
-          @(vif.mon_cb);
-        end while (!(vif.mon_cb.wvalid === 1'b1 && vif.mon_cb.wready === 1'b1));
-
-        vif.wvalid <= 1'b0;
-      end
-    join
-
-    /* delay before accepting write response */
-    repeat (item.bready_delay)
-      @(vif.mon_cb);
-
-    vif.bready <= 1'b1;
-
+    // We know AWVALID is asserted because WE drive it.
+    // Only wait for DUT-owned AWREADY.
     do begin
-      @(vif.mon_cb);
-    end while (!(vif.mon_cb.bvalid === 1'b1 && vif.mon_cb.bready === 1'b1));
+      @(vif.mgr_cb);
+    end while (vif.mgr_cb.awready !== 1'b1);
 
-    /* capture the sampled response */
-    item.resp = vif.mon_cb.b.resp;
-    vif.bready <= 1'b0;
-  endtask
+    `uvm_info(
+      "MGR_WR_DATA_TIMEOUT",
+      $sformatf(
+        "AW accepted at addr=0x%0h; intentionally withholding WVALID",
+        item.addr
+      ),
+      UVM_LOW
+    )
+
+    vif.mgr_cb.awvalid <= 1'b0;
+    vif.mgr_cb.wvalid  <= 1'b0;
+
+    // Allow DUT timeout detector to expire
+    repeat (TIMEOUT_COUNTER + 10)
+      @(vif.mgr_cb);
+
+    return;
+  end
+
+
+  // ----------------------------------------------------------
+  // Normal AW + W request
+  // ----------------------------------------------------------
+  fork
+
+    // AW channel
+    begin
+      repeat (item.aw_delay)
+        @(vif.mgr_cb);
+
+      vif.mgr_cb.aw.addr <= item.addr;
+      vif.mgr_cb.aw.prot <= item.prot;
+      vif.mgr_cb.awvalid <= 1'b1;
+
+      // AWVALID is already known to be asserted.
+      // Wait only for DUT-owned AWREADY.
+      do begin
+        @(vif.mgr_cb);
+      end while (vif.mgr_cb.awready !== 1'b1);
+
+      `uvm_info(
+        "MGR_WR",
+        $sformatf(
+          "Upstream AW handshake completed at %0t",
+          $time
+        ),
+        UVM_LOW
+      )
+
+      vif.mgr_cb.awvalid <= 1'b0;
+    end
+
+
+    // W channel
+    begin
+      repeat (item.w_delay)
+        @(vif.mgr_cb);
+
+      vif.mgr_cb.w.data <= item.data;
+      vif.mgr_cb.w.strb <= item.strb;
+      vif.mgr_cb.wvalid <= 1'b1;
+
+      // WVALID is driven by us.
+      // Wait only for DUT-owned WREADY.
+      do begin
+        @(vif.mgr_cb);
+      end while (vif.mgr_cb.wready !== 1'b1);
+
+      `uvm_info(
+        "MGR_WR",
+        $sformatf(
+          "Upstream W handshake completed at %0t",
+          $time
+        ),
+        UVM_LOW
+      )
+
+      vif.mgr_cb.wvalid <= 1'b0;
+    end
+
+  join
+
+
+  `uvm_info(
+    "MGR_WR",
+    $sformatf(
+      "Upstream AW/W completed at %0t; bready_delay=%0d",
+      $time,
+      item.bready_delay
+    ),
+    UVM_LOW
+  )
+
+
+  // ----------------------------------------------------------
+  // Write response channel
+  // ----------------------------------------------------------
+
+  repeat (item.bready_delay)
+    @(vif.mgr_cb);
+
+  vif.mgr_cb.bready <= 1'b1;
+
+  `uvm_info(
+    "MGR_WR",
+    $sformatf(
+      "Now asserting upstream BREADY at %0t",
+      $time
+    ),
+    UVM_LOW
+  )
+
+  // BREADY is driven by us.
+  // Wait only for DUT-owned BVALID.
+  do begin
+  @(vif.mgr_cb);
+
+  $display(
+    "B DEBUG @ %0t raw_bvalid=%b raw_bready=%b mgr_bvalid=%b",
+    $time,
+    vif.bvalid,
+    vif.bready,
+    vif.mgr_cb.bvalid
+  );
+
+end while (vif.mgr_cb.bvalid !== 1'b1);
+
+  // Capture DUT response
+  item.resp = vif.mgr_cb.b.resp;
+
+  vif.mgr_cb.bready <= 1'b0;
+
+endtask
 
   virtual task drive_subordinate_write(
       axi4l_write_item item
@@ -155,6 +274,13 @@ class axi4l_write_driver extends uvm_driver#(axi4l_write_item); /* this driver c
 
     mem_model.write(item.addr, item.data, item.strb);
     item.resp = RESP_OKAY;
+
+    if (item.suppress_bvalid === 1'b1) begin
+      `uvm_info("SUB_WRITE_TIMEOUT", $sformatf("Withholding BVALID; write request for address 0x%0h and data: 0x%0h", item.addr, item.data), UVM_LOW)
+      repeat (TIMEOUT_COUNTER + 10)
+        @(vif.mon_cb);
+      return;
+    end
 
     `uvm_info(
       "SUB_WR",

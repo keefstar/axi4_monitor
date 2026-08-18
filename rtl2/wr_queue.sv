@@ -37,6 +37,14 @@ logic aw_perm;
 /* AW channel - Part 1 of admission */
 logic aw_fire, w_fire, pair_fire;
 
+/* to remember whether each independent downstream channel has already completed its handshake for thecurrent write pair*/
+logic downstream_aw_done;
+logic downstream_w_done;
+
+logic downstream_aw_fire;
+logic downstream_w_fire;
+logic downstream_pair_done;
+
 assign aw_perm = (wpair_state == WPAIR_IDLE) && !full &&!epoch_clr && !flush;
 
 aw_beat_t aw_hold;
@@ -52,20 +60,55 @@ assign w_perm = (wpair_state == WPAIR_AW_ONLY) && !epoch_clr;
 /* reminder, whoever plugs in as a4l_mng will drive awvalid/aw and recieve awready*/
 /* confusion comment: s and m name the guards's two faces; so s.awvalid is AWVALID arriving at the subordinate face (somelese else drove it)
 and m.awvalid is AWVALID leaving the mangaer face*/
-assign m.awvalid = w_perm && s.wvalid; /* sub recieves AW only when W is also ready */
+
+/* upstream AW adimssion */
+/* the guard accepts and stores AW first*/
 assign s.awready = aw_perm;
+assign aw_fire = s.awvalid && s.awready;
+/* downstream AW/W forwarding*/
+/* once upstream W is presnet, launch downstream AW and W together*/
+/* if one downstrema channel handshakes first, stop asserting VALID on that channel, but continue asserting VALID on another*/
+assign m.awvalid = w_perm && s.wvalid && !downstream_aw_done;
+assign m.wvalid = w_perm && s.wvalid && !downstream_w_done;
+/* forward the stored AW pauload and current stable W payload*/
+/* upstream manager mus keep WDATA/WSTRB stable while WVALID is asserting and WRREADY is kept low!!!*/
 assign m.aw = aw_hold;
-assign aw_fire = s.awvalid && s.awready; 
+assign m.w  = s.w;
+/* indepdendent downstram handshakes*/
+assign downstream_aw_fire = m.awvalid && m.awready;
+assign downstream_w_fire = m.wvalid && m.wready;
+assign downstream_pair_done = (downstream_aw_done || downstream_aw_fire) && (downstream_w_done  || downstream_w_fire);
 
-
-
-/* W channel */
-/* Recall constraint: writes are only accepted when in AW_ONLY (AW recieves first) */
-assign m.wvalid = w_perm && s.wvalid; /* same as AW transmissino ot sub; both halves given same cycle */
-assign s.wready = m.awready && m.wready && w_perm; 
-assign m.w = s.w;
+assign s.wready = w_perm && s.wvalid && downstream_pair_done;
 assign w_fire = s.wvalid && s.wready;
+
 assign pair_fire = w_fire;
+
+always_ff @(posedge clk or negedge rst_n) begin
+  if (!rst_n) begin
+    downstream_aw_done <= 1'b0;
+    downstream_w_done  <= 1'b0;
+  end
+  else if (epoch_clr) begin
+    downstream_aw_done <= 1'b0;
+    downstream_w_done  <= 1'b0;
+  end
+  else if (pair_fire) begin
+    downstream_aw_done <= 1'b0;
+    downstream_w_done  <= 1'b0;
+  end
+  else if (wpair_state == WPAIR_AW_ONLY) begin
+    if (downstream_aw_fire)
+      downstream_aw_done <= 1'b1;
+    if (downstream_w_fire)
+      downstream_w_done <= 1'b1;
+  end
+  else begin
+    downstream_aw_done <= 1'b0;
+    downstream_w_done  <= 1'b0;
+  end
+end
+
 
 /* W timer: manager side fault. Run in AW only. freezes when th emanager is actually presenting W */
 /* note; this is the only timer in the design that doesnt lead to a SLVERR; only a flag */
@@ -111,7 +154,8 @@ assign m.bready = (drain_cnt != '0) || ((wr_state == WR_TRACKING) && s.bready);
 
 assign ghost_fire = m.bvalid && (drain_cnt != '0);
 assign inject_fire = (wr_state == WR_INJECTING) && s.bready;
-assign fwd_fire = (s.bvalid && s.bready) && (wr_state == WR_TRACKING); /* sub is ready to send, man is ready to take */
+assign fwd_fire = (wr_state == WR_TRACKING) && (s.bvalid === 1'b1) && (s.bready === 1'b1);
+  /* sub is ready to send, man is ready to take */
 assign retire_fire = inject_fire || fwd_fire;
 
 

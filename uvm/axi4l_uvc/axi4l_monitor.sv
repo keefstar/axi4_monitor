@@ -1,7 +1,7 @@
-
 class axi4l_monitor extends uvm_monitor;
   `uvm_component_utils(axi4l_monitor)
   virtual axi4l_if vif;
+  axi4l_role_e role;
   
   /* to implement scoreboard - analysis port */
   /* A specialized Transaction-Level Modeling (TLM) port used to broadcast transaction data from a component (like a monitor)
@@ -26,6 +26,9 @@ class axi4l_monitor extends uvm_monitor;
     if (!uvm_config_db#(virtual axi4l_if)::get(this, "", "vif", vif)) begin
       `uvm_fatal("NOVIF", "axi4l_monitor could not get virtual interface 'vif'")
     end
+    if (!uvm_config_db#(axi4l_role_e)::get( this, "", "role", role )) begin
+       `uvm_fatal( "NOROLE", "axi4l_monitor could not get AXI4-Lite role" )
+     end
   endfunction : build_phase
   
   /* monitor interface signals*/
@@ -44,6 +47,7 @@ class axi4l_monitor extends uvm_monitor;
         
         read_tr = axi4l_read_item::type_id::create("read_request_tr");
         
+        read_tr.role = role;
         read_tr.addr = vif.mon_cb.ar.addr;
         read_tr.prot = vif.mon_cb.ar.prot;
         read_tr.kind = axi4l_read_item::READ_REQUEST;
@@ -56,8 +60,9 @@ class axi4l_monitor extends uvm_monitor;
       if (vif.mon_cb.rvalid && vif.mon_cb.rready) begin
         read_tr = axi4l_read_item::type_id::create("read_response_tr");
         
+        read_tr.role = role;
         read_tr.data = vif.mon_cb.r.data;
-        read_tr.resp = vif.mon_cb.r.resp;
+        read_tr.resp = axi_resp_e'(vif.mon_cb.r.resp);
         read_tr.kind = axi4l_read_item::READ_RESPONSE;
         
         read_ap.write(read_tr);
@@ -101,7 +106,8 @@ class axi4l_monitor extends uvm_monitor;
     end
     
   endtask : run_phase
-  
+
+
 endclass : axi4l_monitor
 
 /* flow:

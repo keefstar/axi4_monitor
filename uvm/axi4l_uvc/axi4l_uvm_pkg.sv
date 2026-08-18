@@ -29,7 +29,11 @@ package axi4l_uvm_pkg;
   /* agent*/
   `include "axi4l_manager_agent.sv"
   `include "axi4l_subordinate_agent.sv"
+  /* coverage*/
+  //`include "axi4l_read_coverage.sv"
   /* sequences (just needs to come after sequencers) */
   `include "sequences/axi4l_read_seq.sv"
   `include "sequences/axi4l_write_seq.sv"
+  `include "sequences/write_resp_timeout_sequences.sv"
+
 endpackage : axi4l_uvm_pkg

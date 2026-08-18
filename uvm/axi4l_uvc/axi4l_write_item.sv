@@ -44,6 +44,18 @@ class axi4l_write_item extends uvm_sequence_item;
     bvalid_delay inside {[0:5]};
   }
 
+  /* FAULT CONTROL FIELDS */
+  rand bit suppress_bvalid; 
+  constraint normal_write_behvaiour_c{
+    soft suppress_bvalid == 1'b0;
+  }
+
+  /* write-data timeout test (AW recieved, but no W)*/
+  rand bit suppress_wvalid;
+  constraint normal_aw_pass_c{
+    soft suppress_wvalid == 1'b0;
+  }
+
   /*
   Manager sequence role configuration.
   */
@@ -65,11 +77,13 @@ class axi4l_write_item extends uvm_sequence_item;
     w_delay.rand_mode(0);
     bready_delay.rand_mode(0);
     nonzero_strb_c.constraint_mode(0);
+    suppress_wvalid.rand_mode(0);
   endfunction : configure_for_subordinate
 
   /* UVM factory macros */
   `uvm_object_utils_begin(axi4l_write_item) /* UVM, this class exists and may be create dthrough the factory */
   /* packed logic vectors and integers*/
+  `uvm_field_enum(axi4l_write_kind_e, kind, UVM_ALL_ON)
   `uvm_field_int(addr, UVM_ALL_ON)
   `uvm_field_int(prot, UVM_ALL_ON)
   `uvm_field_int(data, UVM_ALL_ON)
@@ -80,8 +94,12 @@ class axi4l_write_item extends uvm_sequence_item;
   `uvm_field_int(awready_delay, UVM_ALL_ON)
   `uvm_field_int(wready_delay, UVM_ALL_ON)
   `uvm_field_int(bvalid_delay, UVM_ALL_ON)
+  /* fault control uvm registration*/
+  `uvm_field_int(suppress_bvalid, UVM_ALL_ON)
+  `uvm_field_int(suppress_wvalid, UVM_ALL_ON)
   /* enum field*/
   `uvm_field_enum(axi_resp_e, resp, UVM_ALL_ON)
+  
   `uvm_object_utils_end
 
 endclass : axi4l_write_item

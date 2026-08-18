@@ -12,6 +12,9 @@ class axi4l_read_item extends uvm_sequence_item; /*inherit from uvm_sequence_ite
     READ_RESPONSE
   } axi4l_read_kind_e;
   axi4l_read_kind_e kind = READ_REQUEST;
+
+  /* * Identifies which configured AXI agent observed this event. * AXI4L_MANAGER corresponds to the upstream agent. * AXI4L_SUBORDINATE corresponds to the downstream agent. */
+  axi4l_role_e role;
   
   /* super specific syntax*/
   function new(string name = "axi4l_read_item"); /* gives object a default name */
@@ -24,7 +27,7 @@ class axi4l_read_item extends uvm_sequence_item; /*inherit from uvm_sequence_ite
   rand logic[PROT_WIDTH - 1:0] prot;
   /* response side fields*/
   logic[DATA_WIDTH - 1:0] data;
-  axi_resp_e resp;
+  rand axi_resp_e resp;
   
   /* control fields; not part of AXI payload itself but for driver to understand how to execute the operation*/
   //rand write_order_e write_order;
@@ -33,7 +36,23 @@ class axi4l_read_item extends uvm_sequence_item; /*inherit from uvm_sequence_ite
   /* subordinate-side control fields */
   rand int unsigned arready_delay; // cycles before subordinate asserts ARREADY
   rand int unsigned rvalid_delay; // cycles before subordinate returns RVALID/response
-  
+
+  /* FAULT CONTROL FIELD */
+  rand bit suppress_rvalid; /* when set, the downtream sub accepts AR but intentionally never returns BVALID*/
+  /* this should help create read-response timeout*/
+  /* use soft so that ordinary test gets 0, but a timeout sequence can override it*/
+  constraint normal_read_behavior_c {
+  soft suppress_rvalid == 1'b0;
+}
+
+  constraint legal_read_resp_c {
+  resp inside {RESP_OKAY, RESP_SLVERR, RESP_DECERR};
+}
+
+constraint default_read_resp_c {
+  soft resp == RESP_OKAY;
+}
+
   /* default constraints: make the default transaction legal and typical*/
   constraint aligned_addr_c {
     /* for 32-bit word access, this makes default addresses word-aligned*/
@@ -59,6 +78,12 @@ class axi4l_read_item extends uvm_sequence_item; /*inherit from uvm_sequence_ite
   function void configure_for_manager();
     arready_delay.rand_mode(0);
     rvalid_delay.rand_mode(0);
+    resp.rand_mode(0);
+
+    /* manager observes RRESP; does not generate it*/
+    resp.rand_mode(0);
+    legal_read_resp_c.constraint_mode(0);
+    default_read_resp_c.constraint_mode(0);
   endfunction : configure_for_manager
 
   /*
@@ -96,8 +121,12 @@ class axi4l_read_item extends uvm_sequence_item; /*inherit from uvm_sequence_ite
   `uvm_field_int(rready_delay, UVM_ALL_ON)
   `uvm_field_int(arready_delay, UVM_ALL_ON)
   `uvm_field_int(rvalid_delay, UVM_ALL_ON)
+  `uvm_field_int(suppress_rvalid, UVM_ALL_ON)
+  
   /* enum field*/
   `uvm_field_enum(axi_resp_e, resp, UVM_ALL_ON)
+  `uvm_field_enum(axi4l_role_e, role, UVM_ALL_ON)
+  
   
   `uvm_object_utils_end
   
