@@ -31,8 +31,16 @@ class axi4l_read_driver extends uvm_driver#(axi4l_read_item); /* this driver con
   /* RUN PHASE RUNS ONCE AT START UP */
   virtual task run_phase(uvm_phase phase);
     unique case (role) /* Put whichever signals this driver owns into an idle state first. */
-      AXI4L_MANAGER: {vif.arvalid, vif.rready, vif.ar} <= '0;
-      AXI4L_SUBORDINATE: {vif.arready, vif.rvalid, vif.r} <= '0;
+      AXI4L_MANAGER: begin
+        vif.mgr_cb.arvalid <= '0;
+        vif.mgr_cb.rready  <= '0;
+        vif.mgr_cb.ar      <= '0;
+      end
+      AXI4L_SUBORDINATE: begin
+        vif.sub_cb.arready <= '0;
+        vif.sub_cb.rvalid  <= '0;
+        vif.sub_cb.r       <= '0;
+      end
       default: `uvm_fatal("BADROLE", "Unknown AXI4-Lite role")
     endcase
     // Do not begin driving transactions while reset is active.
@@ -62,39 +70,38 @@ class axi4l_read_driver extends uvm_driver#(axi4l_read_item); /* this driver con
     wait for RVALID/RDATA/RRESP*/
     /* wait before issuing read (address) request*/
     repeat (item.ar_delay)
-      @(vif.mon_cb);
-    
+      @(vif.mgr_cb);
+
     /* drive the AR payload directly onto the interface*/
-    vif.ar.addr <= item.addr;
-    vif.ar.prot <= item.prot;
-    vif.arvalid <= 1'b1;
-    
-    /* wait until an AR handshake is observed (from sub)*/
+    vif.mgr_cb.ar.addr <= item.addr;
+    vif.mgr_cb.ar.prot <= item.prot;
+    vif.mgr_cb.arvalid <= 1'b1;
+
+    /* ARVALID is driven by us; wait only for DUT/subordinate-owned ARREADY*/
     do begin
-      @(vif.mon_cb);
+      @(vif.mgr_cb);
     end
-    /* KEEP WAITING UNTL BOTH VALID AND READY ARE DEFINITELY 1 (AVOID 0 and X CASES)*/
-    while (!(vif.mon_cb.arvalid === 1'b1 && vif.mon_cb.arready === 1'b1)); /* Read the value of arready as sampled by the clocking block*/
-    
+    while (vif.mgr_cb.arready !== 1'b1); /* Read the value of arready as sampled by the clocking block*/
+
     /* request was accepted; can deassert ARVALID by manager*/
-    vif.arvalid <= 1'b0;
-    
+    vif.mgr_cb.arvalid <= 1'b0;
+
     /* delay before accepting read resopnse/willingness*/
     repeat (item.rready_delay)
-      @(vif.mon_cb);
-    
-    vif.rready <= 1'b1;
-    
-    /* wait until R handhsake occurs*/
+      @(vif.mgr_cb);
+
+    vif.mgr_cb.rready <= 1'b1;
+
+    /* RREADY is driven by us; wait only for DUT/subordinate-owned RVALID*/
     do begin
-      @(vif.mon_cb);
-    end while (!(vif.mon_cb.rvalid === 1'b1 &&  vif.mon_cb.rready === 1'b1));
-    
+      @(vif.mgr_cb);
+    end while (vif.mgr_cb.rvalid !== 1'b1);
+
     /* capture the sampled resopnse*/
-    item.data = vif.mon_cb.r.data;
-    item.resp = vif.mon_cb.r.resp;
+    item.data = vif.mgr_cb.r.data;
+    item.resp = vif.mgr_cb.r.resp;
     /* deassert RREADY to signify resopnse accepted*/
-    vif.rready <= 1'b0;
+    vif.mgr_cb.rready <= 1'b0;
   endtask
   
   
@@ -108,36 +115,37 @@ class axi4l_read_driver extends uvm_driver#(axi4l_read_item); /* this driver con
     
     /* wait to recieve valid AR signal from manager*/
     do begin
-      @(vif.mon_cb);
-    end while (vif.mon_cb.arvalid !== 1'b1);
-    
+      @(vif.sub_cb);
+    end while (vif.sub_cb.arvalid !== 1'b1);
+
     /* complete specified/randomized delays*/
     repeat (item.arready_delay)
-      @(vif.mon_cb);
-    vif.arready <= 1'b1; /* drive its willingness to accept AR data; AR handshake complete*/
+      @(vif.sub_cb);
+    vif.sub_cb.arready <= 1'b1; /* drive its willingness to accept AR data; AR handshake complete*/
 
+    /* ARREADY is driven by us; wait only for manager-owned ARVALID*/
     do begin
-      @(vif.mon_cb);
+      @(vif.sub_cb);
     end while (
-      !(vif.mon_cb.arvalid === 1'b1 && vif.mon_cb.arready === 1'b1)
+      vif.sub_cb.arvalid !== 1'b1
     );
-    
+
     /* observe/obtain the driven data from manager*/
-    item.addr = vif.mon_cb.ar.addr;
-    item.prot = vif.mon_cb.ar.prot;
+    item.addr = vif.sub_cb.ar.addr;
+    item.prot = vif.sub_cb.ar.prot;
     /* subordinate is able to de-assert ARREADY*/
-    vif.arready <= 1'b0;
+    vif.sub_cb.arready <= 1'b0;
     /* AXI technically allows ARREADY to be asserted before ARVALID*/
 
     `uvm_info("SUB_RD", "Passed AR handshake", UVM_LOW)
      //item.data = pattern(item.addr);
-    
+
     /* for timeout test only: */
     if (item.suppress_rvalid == 1'b1) begin
       `uvm_info("SUB_RD_TIMEOUT", $sformatf("Accepted AR for addr = 0x%0h: intentinoally withhold RVALID", item.addr), UVM_LOW)
-    
-    repeat (TIMEOUT_COUNTER + 10) 
-    @(vif.mon_cb);
+
+    repeat (TIMEOUT_COUNTER + 10)
+    @(vif.sub_cb);
     return;
 
   end
@@ -147,21 +155,22 @@ class axi4l_read_driver extends uvm_driver#(axi4l_read_item); /* this driver con
     `uvm_info("SUB_RD", $sformatf("Waiting rvalid_delay=%0d cycles", item.rvalid_delay), UVM_LOW)
 
     repeat (item.rvalid_delay)
-      @(vif.mon_cb);
+      @(vif.sub_cb);
 
     `uvm_info("SUB_RD", "Now asserting RVALID", UVM_LOW)
 
-    vif.r.data <= item.data;
-    vif.r.resp <= item.resp;
-    vif.rvalid <= 1'b1;
-    
+    vif.sub_cb.r.data <= item.data;
+    vif.sub_cb.r.resp <= item.resp;
+    vif.sub_cb.rvalid <= 1'b1;
+
     /* VALID must not depend on READY; otherwise, deadlock*/
+    /* RVALID is driven by us; wait only for manager-owned RREADY*/
     do begin
-      @(vif.mon_cb);
-    end while (!(vif.mon_cb.rvalid === 1'b1 && vif.mon_cb.rready === 1'b1));
-    
+      @(vif.sub_cb);
+    end while (vif.sub_cb.rready !== 1'b1);
+
     /* R handshake completed */
-    vif.rvalid <= 1'b0;
+    vif.sub_cb.rvalid <= 1'b0;
   endtask : drive_subordinate_read
   
   /* do i want/need this here if i have my new RAM idea?*/

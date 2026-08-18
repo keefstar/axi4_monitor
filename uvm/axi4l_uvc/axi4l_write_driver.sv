@@ -32,7 +32,12 @@ class axi4l_write_driver extends uvm_driver#(axi4l_write_item); /* this driver c
   vif.mgr_cb.aw      <= '0;
   vif.mgr_cb.w       <= '0;
 end
-      AXI4L_SUBORDINATE: {vif.awready, vif.wready, vif.bvalid, vif.b} <= '0;
+      AXI4L_SUBORDINATE: begin
+  vif.sub_cb.awready <= '0;
+  vif.sub_cb.wready  <= '0;
+  vif.sub_cb.bvalid  <= '0;
+  vif.sub_cb.b       <= '0;
+end
       default: `uvm_fatal("BADROLE","Unknown AXI4-Lite role")
     endcase
     // Do not begin driving transactions while reset is active.
@@ -235,38 +240,40 @@ endtask
       /* AW channel */
       begin
         do begin
-          @(vif.mon_cb);
-        end while (vif.mon_cb.awvalid !== 1'b1);
+          @(vif.sub_cb);
+        end while (vif.sub_cb.awvalid !== 1'b1);
 
         repeat (item.awready_delay)
-          @(vif.mon_cb);
-        vif.awready <= 1'b1;
+          @(vif.sub_cb);
+        vif.sub_cb.awready <= 1'b1;
 
+        /* AWREADY is driven by us. Wait only for manager-owned AWVALID. */
         do begin
-          @(vif.mon_cb);
-        end while (!(vif.mon_cb.awvalid === 1'b1 && vif.mon_cb.awready === 1'b1));
+          @(vif.sub_cb);
+        end while (vif.sub_cb.awvalid !== 1'b1);
 
-        item.addr = vif.mon_cb.aw.addr;
-        item.prot = vif.mon_cb.aw.prot;
-        vif.awready <= 1'b0;
+        item.addr = vif.sub_cb.aw.addr;
+        item.prot = vif.sub_cb.aw.prot;
+        vif.sub_cb.awready <= 1'b0;
       end
       /* W channel */
       begin
         do begin
-          @(vif.mon_cb);
-        end while (vif.mon_cb.wvalid !== 1'b1);
+          @(vif.sub_cb);
+        end while (vif.sub_cb.wvalid !== 1'b1);
 
         repeat (item.wready_delay)
-          @(vif.mon_cb);
-        vif.wready <= 1'b1;
+          @(vif.sub_cb);
+        vif.sub_cb.wready <= 1'b1;
 
+        /* WREADY is driven by us. Wait only for manager-owned WVALID. */
         do begin
-          @(vif.mon_cb);
-        end while (!(vif.mon_cb.wvalid === 1'b1 && vif.mon_cb.wready === 1'b1));
+          @(vif.sub_cb);
+        end while (vif.sub_cb.wvalid !== 1'b1);
 
-        item.data = vif.mon_cb.w.data;
-        item.strb = vif.mon_cb.w.strb;
-        vif.wready <= 1'b0;
+        item.data = vif.sub_cb.w.data;
+        item.strb = vif.sub_cb.w.strb;
+        vif.sub_cb.wready <= 1'b0;
       end
     join
 
@@ -278,7 +285,7 @@ endtask
     if (item.suppress_bvalid === 1'b1) begin
       `uvm_info("SUB_WRITE_TIMEOUT", $sformatf("Withholding BVALID; write request for address 0x%0h and data: 0x%0h", item.addr, item.data), UVM_LOW)
       repeat (TIMEOUT_COUNTER + 10)
-        @(vif.mon_cb);
+        @(vif.sub_cb);
       return;
     end
 
@@ -292,20 +299,21 @@ endtask
     )
 
     repeat (item.bvalid_delay)
-      @(vif.mon_cb);
+      @(vif.sub_cb);
 
     `uvm_info("SUB_WR", "Now asserting BVALID", UVM_LOW)
 
-    vif.b.resp <= item.resp;
-    vif.bvalid <= 1'b1;
+    vif.sub_cb.b.resp <= item.resp;
+    vif.sub_cb.bvalid <= 1'b1;
 
     /* VALID must not depend on READY; otherwise, deadlock */
+    /* BVALID is driven by us. Wait only for manager-owned BREADY. */
     do begin
-      @(vif.mon_cb);
-    end while (!(vif.mon_cb.bvalid === 1'b1 && vif.mon_cb.bready === 1'b1));
+      @(vif.sub_cb);
+    end while (vif.sub_cb.bready !== 1'b1);
 
     /* B handshake completed */
-    vif.bvalid <= 1'b0;
+    vif.sub_cb.bvalid <= 1'b0;
   endtask : drive_subordinate_write
 
 endclass : axi4l_write_driver

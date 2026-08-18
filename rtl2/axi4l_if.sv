@@ -94,14 +94,65 @@ interface axi4l_if (input logic clk, input logic aresetn);
   /* Samples all channel signals at a fixed skew before posedge clk, so a
      class-based monitor never races the DUT for the value at the same edge */
   clocking mon_cb @(posedge clk);
-    input awvalid, awready, aw, wvalid, wready, w,
-    bvalid, bready, b, arvalid, arready, ar,
-    rvalid, rready, r;
+    default input #1step;
+
+    input awvalid, awready, aw;
+    input wvalid, wready, w;
+    input bvalid, bready, b;
+    input arvalid, arready, ar;
+    input rvalid, rready, r;
   endclocking
-  
+
+  /* Manager-driver clocking block: manager-owned signals are outputs,
+     signals returned by the DUT/subordinate are inputs. Keeps the manager
+     driver off mon_cb so it never races the monitor's sample point. */
+  clocking mgr_cb @(posedge clk);
+    default input #1step output #0;
+
+    // Manager-driven signals
+    output awvalid, aw;
+    output wvalid, w;
+    output bready;
+
+    output arvalid, ar;
+    output rready;
+
+    // Signals returned by DUT/subordinate
+    input awready;
+    input wready;
+    input bvalid, b;
+
+    input arready;
+    input rvalid, r;
+  endclocking
+
+  /* Subordinate-driver clocking block: subordinate-owned signals are
+     outputs, signals driven by the manager are inputs. Keeps the
+     subordinate driver off mon_cb so it never races the monitor's sample
+     point. */
+  clocking sub_cb @(posedge clk);
+    default input #1step output #0;
+
+    // Signals driven by manager
+    input awvalid, aw;
+    input wvalid, w;
+    input bready;
+
+    input arvalid, ar;
+    input rready;
+
+    // Subordinate-driven signals
+    output awready;
+    output wready;
+    output bvalid, b;
+
+    output arready;
+    output rvalid, r;
+  endclocking
+
   modport uvm_mon(
     clocking mon_cb,
       input aresetn
     );
-    
+
 endinterface : axi4l_if
