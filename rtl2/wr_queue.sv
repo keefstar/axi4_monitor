@@ -187,6 +187,8 @@ end
 logic b_timer_run, b_timeout_hit;
 assign b_timer_run = (wr_state == WR_TRACKING) && ((drain_cnt != '0) || !m.bvalid);
 assign b_timeout_hit = b_timer_run && (b_timer == TIMEOUT_CYCLES);
+
+
 always_ff @(posedge clk or negedge rst_n) begin
     if (!rst_n) b_timer <= '0;
     else if (epoch_clr || retire_fire || b_timeout_hit) b_timer <= '0;
@@ -222,49 +224,8 @@ end
 
 assign timeout_pulse = b_timeout_hit; /* 1 cycle pulse for top level; allows top level to raise interrupt and enter containment/recovery */
 assign busy = (outst_cnt != '0) || (drain_cnt != '0) || (wpair_state != WPAIR_IDLE);
-assign upstream_empty = (outst_cnt == '0) && (wpair_state == WPAIR_IDLE); /* no drain_cnt as that reprenets debt to guard from sub, not debt to manager by the ugard */
+assign upstream_empty = (outst_cnt == '0) && ((wpair_state == WPAIR_IDLE) || (wpair_state == WPAIR_W_FAULT));
+/* in WPAIR_W_FAULT, the SCC is still holding internal fault state but it does not owe the upsream manager a legal BRESP, so from a top-level recovery logic perspective, the upstream side is quiescent enough to proceed into recovery.*/
+ /* no drain_cnt as that reprenets debt to guard from sub, not debt to manager by the ugard */
 endmodule : wr_queue
 
-
-/*
-If a write times out before we have WLAST (redundant in AXI4-lite), it is a specification violation to inject
-BRESP = SLVERR since BVALID is only accepted after the final (and here only) beat. The cleaner, more correct and
-conservative design choice is to use the interrupt controller to treat this as a write-data-phase fault.
-
-SLVERR should be reserved, in the case of writes, for when we are waiting for a BREADY response from the manager
-and there is a timeout. 
-*/
-
-/* As a constriant:
-A write is admitted only when BOTH halves (AW, W) have arrived, and we make AW required to come first
-Specifically, AW first, always; W only accepted while waiting for it.
-
-module design structure generally follows the precedent laid out in reads.
-But add more FSMs to account for AW/W/B handling.
-
-Design choices:
-
-Recall: Flush generally injects SLVERR to everywhere possible, BUT, But a write sitting in WPAIR_AW_ONLY has no B response coming and no legal SLVERR — the manager only sent an address, never the data, 
-so the write-response dependency was never satisfied, so injecting B would be the exact spec violation your notes open with. 
-Flush's tool doesn't fit this transaction.
-It's not that flush chooses to route it to W_FAULT; it's that flush has nothing else it can lawfully do with it.
-INSTEAD,
-
-Flush does not reset the guard. Flush makes the guard drain — inject SLVERRs, empty its obligations. 
-The guard's books get wiped later, by epoch_clr, not flush. Flush empties; epoch_clr forgets. 
-Different signals, different times.
-
-W_FAULT does not tell anyone to reset the subordinate. W_FAULT raises a fault flag that feeds the interrupt. 
-The interrupt notifies software. Software — reading the interrupt — is what resets the subordinate. 
-The guard has no wire that resets the sub and no authority to; it can only report. 
-
-
-Say we have recieved AW 
-
-Given the AW/W ordering constraint: do I forward to subordinatye immediately when AW is recieved and usee WSTRB = 0 to 'stall' myself?
-Or do I hold the AW until the pair is complete? I lean for this. A W-timeout happens entirely upstream of the subordinate, it never saw anything, nothing to get stuck on. 
-The fault is contained on the manager side where it belongs.
-
-a) FSM 1:
-
- */

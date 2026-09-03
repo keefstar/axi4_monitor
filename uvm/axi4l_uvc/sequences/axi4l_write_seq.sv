@@ -28,8 +28,8 @@ class axi4l_manager_write_seq extends uvm_sequence#(axi4l_manager_write_seq);
         get_type_name(),
         "Manager write item randomization failed"
       )
-
     end
+    `uvm_info( "TIMEOUT_DEBUG", $sformatf( "subordinate item: suppress_bvalid=%0b awready_delay=%0d wready_delay=%0d bvalid_delay=%0d", req.suppress_bvalid, req.awready_delay, req.wready_delay, req.bvalid_delay ), UVM_LOW )
   endfunction : randomize_req
 
 endclass : axi4l_manager_write_seq

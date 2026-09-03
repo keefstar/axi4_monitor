@@ -14,6 +14,8 @@ class axi4l_env extends uvm_env;
   axi4l_sb sb;
   /* add coverage */
   axi4l_read_protocol_coverage read_protocol_cov;
+  axi4l_write_protocol_coverage write_protocol_cov;
+
   
   function new(string name, uvm_component parent);
     super.new(name, parent);
@@ -27,6 +29,8 @@ class axi4l_env extends uvm_env;
     upstream_agent = axi4l_manager_agent::type_id::create("upstream_agent", this);
     downstream_agent = axi4l_subordinate_agent::type_id::create("downstream_agent", this);
     read_protocol_cov = axi4l_read_protocol_coverage::type_id::create("read_protocol_cov",this);
+    write_protocol_cov = axi4l_write_protocol_coverage::type_id::create("write_protocol_cov", this);
+
     sb = axi4l_sb::type_id::create("sb", this);
   endfunction : build_phase
   
@@ -47,8 +51,21 @@ class axi4l_env extends uvm_env;
     downstream_agent.monitor.write_ap.connect(sb.downstream_write_imp);
 
     /* connect monitor and coverage instances*/
+    /* read monitor -> read coverage */
+    /* read coverage is a uvm_subscriber */
     upstream_agent.monitor.read_ap.connect(read_protocol_cov.analysis_export);
     downstream_agent.monitor.read_ap.connect(read_protocol_cov.analysis_export);
+
+    /* Write monitor -> Write coverage */
+    /* Read items carry tr.role, so both read monitors may share one analysis_export.
+    * Write items do not carry role, so separate analysis_imp endpoints preserve
+    * whether each observed write event came from the upstream or downstream side.
+    */
+
+    /* analysis_imp gives each incoming stream its own receiving endpoint and callback function */
+    upstream_agent.monitor.write_ap.connect(write_protocol_cov.upstream_write_imp);
+    downstream_agent.monitor.write_ap.connect(write_protocol_cov.downstream_write_imp);
+      
     
   endfunction : connect_phase
   

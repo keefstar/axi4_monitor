@@ -1,6 +1,11 @@
 import a4lite_pkg::*;
 
-module tp_lvl (
+module tp_lvl #(
+    parameter int unsigned DEPTH = a4lite_pkg::DEPTH,
+    parameter int unsigned TIMER_WIDTH = a4lite_pkg::TIMEOUT_WIDTH,
+    parameter logic [TIMER_WIDTH-1:0] TIMEOUT_CYCLES =
+        TIMER_WIDTH'(a4lite_pkg::TIMEOUT_COUNTER)
+)(
     input  logic clk, rst_n,
     /* the two links -- guards sit between them */
     axi4l_if.a4l_sub s,       
@@ -23,7 +28,11 @@ logic rd_timeout_pulse, rd_busy, rd_upstream_empty;
 logic wr_timeout_pulse, wr_w_fault_pulse, wr_busy, wr_upstream_empty;
 
 /* read transaction*/
-rd_queue u_rd (
+rd_queue #(
+    .DEPTH(DEPTH),
+    .TIMER_WIDTH(TIMER_WIDTH),
+    .TIMEOUT_CYCLES(TIMEOUT_CYCLES)
+) u_rd (
     .clk(clk), .rst_n(rst_n), .m(m), .s(s),
     .timeout_pulse(rd_timeout_pulse),
     .busy(rd_busy), .upstream_empty(rd_upstream_empty),
@@ -31,14 +40,17 @@ rd_queue u_rd (
 );
 
 /* write transaction */
-wr_queue u_wr (
+wr_queue #(
+    .DEPTH(DEPTH),
+    .TIMER_WIDTH(TIMER_WIDTH),
+    .TIMEOUT_CYCLES(TIMEOUT_CYCLES)
+) u_wr (
     .clk(clk), .rst_n(rst_n), .m(m), .s(s),
     .timeout_pulse(wr_timeout_pulse),
     .w_fault_pulse(wr_w_fault_pulse),
     .busy(wr_busy), .upstream_empty(wr_upstream_empty),
     .epoch_clr(epoch_clr), .flush(flush)
 );
-
 /* interrupt controller plumbing */
 logic [NUM_FAULT_SOURCES-1:0] violation_notif, rcvy_ack;
 logic all_upstream_empty;

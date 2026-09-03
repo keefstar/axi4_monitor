@@ -11,7 +11,7 @@ class write_timeout_manager_seq extends axi4l_manager_write_seq;
   virtual function void randomize_req();
   if (!(req.randomize() with {
      /* this is a suboridnate driven test, so set all manager-side delays to 0 and known data/parameter values*/
-    addr == 32'h0; /* AW should pass */
+    addr == 32'h4000_0010; /* AW should pass */
     prot == 3'b000;
     data == 32'hBABA_CACA;
     strb == 4'b1111;
@@ -42,6 +42,17 @@ class write_timeout_subordinate_seq extends axi4l_subordinate_write_seq;
   ) begin
     `uvm_fatal(get_type_name(), $sformatf("Write-response timeout subordinate item randomization failed"))
   end 
+   `uvm_info(
+    "TIMEOUT_DEBUG",
+    $sformatf(
+      "subordinate item: suppress_bvalid=%0b awready_delay=%0d wready_delay=%0d bvalid_delay=%0d",
+      req.suppress_bvalid,
+      req.awready_delay,
+      req.wready_delay,
+      req.bvalid_delay
+    ),
+    UVM_LOW
+  )
   endfunction : randomize_req
 
 endclass : write_timeout_subordinate_seq

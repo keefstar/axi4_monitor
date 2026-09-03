@@ -1,0 +1,20 @@
+# Cadence Genus(TM) Synthesis Solution, Version 19.14-s108_1, built Jul  7 2020 16:22:44
+
+# Date: Sat Aug 29 17:42:31 2026
+# Host: ssh-soc.ece.ubc.ca (x86_64 w/Linux 4.18.0-553.154.1.el8_10.x86_64) (1core*16cpus*16physical cpus*Intel Xeon Processor (Cascadelake) 16384KB)
+# OS:   Red Hat Enterprise Linux 8.10 (Source)
+
+source ./genus_frequency_sweep/synth_sweep.tcl
+report_area -hinst [get_db hinsts] -show_full_names
+report_area -hinst [get_db hinsts .u_rd] -show_full_names
+report_area -hinst [get_db hinsts .u_wr] -show_full_names
+report_area -hinst [get_db hinsts .u_irq] -show_full_names
+get_db hinsts .name
+report_area -depth 3 -show_full_names
+get_db inst .name
+get_db insts .name
+report_area [get_db insts u_rd*]
+c
+report_area -gates -show_full_names > ./reports/tp_lvl_200MHz_all_cells_area.rpt
+report_area -gates -show_full_names > ./reports/tp_lvl_200MHz_all_cells_area.rptexit
+exit

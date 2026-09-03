@@ -136,24 +136,3 @@ assign upstream_empty = (outst_cnt == '0);
 
 endmodule : rd_queue
 
-
-/*
-1) head only timer: one timer for the oldest outstanding read, restarted each time the head retires.
-A hung subordinate is contained one transaction at a time ('domino' containment) ratehr than mass-SLVERR
-2) No entry stroage: AXI4-Lite has no ARID and responses are in-order so the next R always belongs to the oldest outstanding ready. 
-The injected SLVERR payload is fabricated. Tracking state collapses t counters plus a 3-phase head FSN,
-3) Timer freeze: timer only counts while the subordinate owes a response (m.rvalid low). If subordinate has presnteed R and the
-manager is backpressuring (s.rready low), it is not a subordinate fault. The timer freezes.
-4) commited injection: once the head times out, its eventual real response is a ghost and will be drained,
-even if it arrives before the manager accepts the injected SLVERR. No cancellation race. 
-
-
-*/
-
-
-/*
-PCIe Completion Timeout: a requester times out a read, synthesizes an error completion upstream (your SLVERR injection, almost literally), raises AER; software performs a Function-Level Reset or secondary-bus reset, and the driver stack retries. The spec explicitly requires the requester to discard late completions for timed-out tags — a drain mechanism in production silicon for two decades. [Certain]
-Xilinx/AMD AXI Firewall IP (PG293): the closest existing IP to your project. Detects timeouts/protocol violations on AXI, blocks the interface, returns error responses to the manager, and requires software to verify quiescence and write an unblock register before traffic resumes — your interrupt + rcvy_ack handshake, productized. Read this doc before writing the related-work chapter; a reviewer will expect
-*/
-
-/* Just avoid calling the work substantive solely because it uses IEEE 1801. The value comes from the failure scenarios and assertions you verify. If you implement the two-domain setup, isolation, power states, mid-transaction power loss, error containment, and epoch recovery, then yes—it is a strong undergraduate-thesis component.*/

@@ -1,0 +1,131 @@
+upf_version 4.0
+#interpret all subsequent hierarchy references relative to tb_top.
+set_design_top tb_top
+
+# External supply sources
+#VDD_IN: external 1.0 V source feeding the design
+create_supply_port VDD_IN
+#VSS_IN : external ground/reference source
+create_supply_port VSS_IN
+
+# Internal supply network
+# VDD_AON: always-on internal rail to supply the SCC 
+# VDD_SW: switched rail supplying PD_SUB
+# VSS: common ground rail for use by both
+create_supply_net VDD_AON
+create_supply_net VDD_SW
+create_supply_net VSS
+
+connect_supply_net VDD_AON -ports {VDD_IN}
+connect_supply_net VSS -ports {VSS_IN}
+
+# Supply states
+# IEEE 1801-2024 uses add_supply_state
+
+add_supply_state VDD_IN -state {ON_1V0 1.0}
+add_supply_state VSS_IN  -state {ON_0V 0.0}
+#VDD_AON by definition is continuouslt avaliable
+add_supply_state VDD_AON -state {ON_1V0 1.0}
+#SUB can exist in two meaningful states (because of the switch)
+#Thus, modeeled as capable of dissapearing
+add_supply_state VDD_SW -state {ON_1V0 1.0} -state {OFF off}
+add_supply_state VSS -state {ON_0V 0.0}
+
+
+# Supply sets
+create_supply_set SS_AON -function {power VDD_AON} -function {ground VSS}
+create_supply_set SS_SUB -function {power VDD_SW} -function {ground VSS}
+
+
+# Power domains
+#PD_TB is the default/also always-on domain for surrounding static testbench hierarchy
+create_power_domain PD_TB -include_scope -supply {primary SS_AON}
+create_power_domain PD_AON  -elements {dut} -supply {primary SS_AON}
+create_power_domain PD_SUB -elements {u_sub} -supply {primary SS_SUB}
+
+# Supply-set power states
+# ON/OFF are predefined supply-set power states in modern
+# IEEE 1801.  They are refined here with the actual supply
+# conditions used by this design.
+
+add_power_state SS_AON \
+    -supply \
+    -update \
+    -state {ON \
+        -supply_expr {
+            power  == {FULL_ON 1.0} &&
+            ground == {FULL_ON 0.0}
+        }
+        -simstate NORMAL
+    }
+
+add_power_state SS_SUB \
+    -supply \
+    -update \
+    -state {ON  -supply_expr { power  == {FULL_ON 1.0} && ground == {FULL_ON 0.0}} -simstate NORMAL } \
+    -state {OFF -supply_expr { power  == OFF && ground == {FULL_ON 0.0} } -simstate CORRUPT }
+
+# Domain power states
+add_power_state PD_AON \
+    -domain \
+    -state {ON \
+        -logic_expr {SS_AON == ON}
+    } \
+    -complete
+
+add_power_state PD_SUB \
+    -domain \
+    -state {ON \
+        -logic_expr {SS_SUB == ON}
+    } \
+    -state {OFF \
+        -logic_expr {SS_SUB == OFF}
+    } \
+    -complete
+
+# Subordinate power switch
+# VDD_AON is the source rail.
+# VDD_SW is the switched output supplying PD_SUB.
+# sub_power_en = 1 enables the switch.
+create_power_switch PS_SUB \
+    -domain PD_SUB \
+    -input_supply_port  {vin VDD_AON} \
+    -output_supply_port {vout VDD_SW} \
+    -control_port       {ctrl sub_power_en} \
+    -on_state           {SUB_ON vin {ctrl}} \
+    -off_state          {SUB_OFF {!ctrl}}
+
+# System-level power states
+# RUN: guard powered, subordinate powered.
+# SUB_OFF: guard remains powered, subordinate powered down.
+# RESTORING remains  excluded because its supply configuration is electrically the same as RUN.  
+# It remains temporal recovery condition governed by isolation, reset and UVM recovery sequencing.
+create_power_state_group SYSTEM_STATES
+
+add_power_state SYSTEM_STATES \
+    -group \
+    -state {RUN \
+        -logic_expr {
+            PD_AON == ON &&
+            PD_SUB == ON
+        }
+    } \
+    -state {SUB_OFF \
+        -logic_expr {
+            PD_AON == ON &&
+            PD_SUB == OFF
+        }
+    } \
+    -complete
+
+# Isolation strategy
+# Outputs leaving PD_SUB are clamped to zero before reaching
+# the always-on SCC.
+set_isolation ISO_SUB \
+    -domain PD_SUB \
+    -applies_to outputs \
+    -clamp_value 0 \
+    -isolation_supply SS_AON \
+    -isolation_signal sub_iso_en \
+    -isolation_sense high \
+    -location parent

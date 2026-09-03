@@ -1,0 +1,61 @@
+SVA_COVER: FLT-01 READ_TIMEOUT recorded in status register
+SVA_COVER: FLT-02 WRITE_DATA_TIMEOUT recorded in status register
+SVA_COVER: FLT-03 WRITE_RESP_TIMEOUT recorded in status register
+SVA_COVER: FLT-04 fault status retained after notification pulse
+SVA_COVER: FLT-05 masked fault recorded without asserting irq
+SVA_COVER: FLT-06 enabled pending fault asserted irq at quiescence
+SVA_COVER: FLT-07 multiple fault sources recorded independently
+SVA_COVER: PROT-01 downstream AR remained asserted through backpressure and completed
+SVA_COVER: PROT-02 upstream read response remained asserted through backpressure and completed
+SVA_COVER: PROT-03 downstream AW remained asserted through backpressure and completed
+SVA_COVER: PROT-04 downstream W remained asserted through backpressure and completed
+SVA_COVER: PROT-05 early upstream W was withheld until the corresponding AW was accepted
+SVA_COVER: PROT-06 accepted upstream AW was held while waiting for corresponding W
+SVA_COVER: PROT-06 downstream AW/W launched together when delayed W became available
+SVA_COVER: PROT-07 upstream write response remained asserted through backpressure and completed
+SVA_COVER: QUEUE-01 at least three reads simultaneously outstanding
+SVA_COVER: QUEUE-01 multiple outstanding reads exercised, outst_cnt=2
+SVA_COVER: QUEUE-02 three outstanding reads retired sequentially
+SVA_COVER: QUEUE-03 additional read request blocked while queue full
+SVA_COVER: QUEUE-03 read admission resumed after queue capacity became available
+SVA_COVER: QUEUE-03 read queue reached configured DEPTH
+SVA_COVER: QUEUE-04 at least three writes simultaneously outstanding
+SVA_COVER: QUEUE-04 multiple outstanding writes exercised, outst_cnt=2
+SVA_COVER: QUEUE-05 additional write blocked while queue full
+SVA_COVER: QUEUE-05 write admission resumed after queue capacity became available
+SVA_COVER: QUEUE-05 write queue reached configured DEPTH
+SVA_COVER: QUEUE-06 one transaction path drained independently of the other
+SVA_COVER: QUEUE-06 read and write paths simultaneously busy
+SVA_COVER: QUEUE-07 new read admitted after earlier retirements freed capacity
+SVA_COVER: QUEUE-07 retired read capacity was reused by later requests
+SVA_COVER: QUEUE-08 head read timed out with follower reads outstanding
+SVA_COVER: QUEUE-08 late follower/head responses drained all ghost debt
+SVA_COVER: QUEUE-08 timed-out head retired while follower obligations remained
+SVA_COVER: QUEUE-08 timeout created downstream ghost-response debt
+SVA_COVER: REC-01 fault forced guard from NORMAL into CONTAINING with flush asserted
+SVA_COVER: REC-02 containment reached upstream quiescence before recovery
+SVA_COVER: REC-02 guard remained in containment with upstream obligations outstanding
+SVA_COVER: REC-03 IRQ remained asserted while fault acknowledgment was withheld
+SVA_COVER: REC-03 READ_TIMEOUT status persisted through containment to quiescence
+SVA_COVER: REC-03 software acknowledgment issued for persistent READ_TIMEOUT fault
+SVA_COVER: REC-04 early acknowledgment could not prematurely clear the failed epoch
+SVA_COVER: REC-04 READ_TIMEOUT clear issued before upstream quiescence
+SVA_COVER: REC-05 guard transitioned from CONTAINING to RECOVERY after upstream quiescence
+SVA_COVER: REC-06 epoch clear occurred with recovery, quiescence, and acknowledgment
+SVA_COVER: REC-06 READ_TIMEOUT clear produced recovery acknowledgment
+SVA_COVER: REC-07 epoch clear returned guard from RECOVERY to NORMAL and released flush
+SVA_COVER: REC-08 completed recovery established a new NORMAL transaction epoch
+SVA_COVER: RTO-04 stalled injected SLVERR exercised
+SVA_COVER: RTO-05 ghost response drain exercised
+SVA_COVER: WDT-01 write-data timeout exercised
+SVA_COVER: WDT-02 WPAIR_W_FAULT state exercised
+SVA_COVER: WDT-03 delayed legal WVALID exercised
+SVA_COVER: WDT-04 final legal WVALID boundary exercised
+SVA_COVER: WDT-05 late WVALID after write-data timeout exercised
+SVA_COVER: WDT-06 AW-only write contained upstream
+SVA_COVER: WRT-01 write-response timeout exercised
+SVA_COVER: WRT-02 upstream SLVERR injection exercised
+SVA_COVER: WRT-03 injected SLVERR held under BREADY backpressure
+SVA_COVER: WRT-04 late downstream B response drained
+SVA_COVER: WRT-05 delayed legal downstream BVALID exercised
+SVA_COVER: WRT-06 final legal downstream BVALID boundary exercised

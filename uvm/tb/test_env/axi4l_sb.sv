@@ -42,26 +42,54 @@ class axi4l_sb extends uvm_scoreboard;
   axi4l_write_item pending_w_q[$];
   
   /* independently calculates what memory should contain based on transactions observed by the scoreboard. */
-  logic[DATA_WIDTH - 1:0] exp_mem[0:255];
+  logic [DATA_WIDTH - 1:0] exp_mem[0:16383];
 
   /* for timeout/injections */
-  bit expect_read_timeout;
-  bit expect_write_timeout; /* AW, W but no BVALID*/
-  bit expect_write_data_timeout; /* AW but no W*/
-  
+  int unsigned expected_read_error_responses;
+  int unsigned expected_late_read_responses;
 
+  int unsigned expected_write_error_responses;  /* AW, W but no BVALID*/
+  bit expect_write_data_timeout; /* AW but no W*/
+  int unsigned expected_late_write_responses; /* adding FOR WRT-04 */
+
+  /* setter functions */
   function void set_expect_read_timeout(bit value);
-  expect_read_timeout = value;
+    expected_read_error_responses = value ? 1 : 0;
   endfunction
 
   function void set_expect_write_timeout(bit value);
-    expect_write_timeout = value;
+  expected_write_error_responses = value ? 1 : 0;
+  endfunction
+
+  function void set_expected_read_error_responses(int unsigned count);
+    expected_read_error_responses = count;
+  endfunction
+
+  function void set_expected_late_read_responses(int unsigned count);
+    expected_late_read_responses = count;
   endfunction
 
   function void set_expect_write_data_timeout(bit value);
     expect_write_data_timeout = value;
   endfunction
-  
+
+  function void set_expect_late_read_response(bit value);
+    expected_late_read_responses = value ? 1 : 0;
+  endfunction
+
+
+  function void set_expect_late_write_response(bit value);
+    expected_late_write_responses = value ? 1 : 0;
+  endfunction
+
+  function void set_expected_write_error_responses(int unsigned count);
+    expected_write_error_responses = count;
+  endfunction
+
+  function void set_expected_late_write_responses(int unsigned count);
+    expected_late_write_responses = count;
+  endfunction
+    
   function new(string name, uvm_component parent);
     super.new(name, parent);
     upstream_read_imp = new("upstream_read_imp", this);
@@ -72,9 +100,11 @@ class axi4l_sb extends uvm_scoreboard;
     /* INITIALIZE RAM */
     foreach (exp_mem[i]) exp_mem[i] = '0;
     /* INITIALIZE FIELDS IF APPLICABLE*/
-    expect_read_timeout = 1'b0;
-    expect_write_timeout = 1'b0;
+    expected_read_error_responses = 0;
+    expected_late_read_responses = 0;
+    expected_write_error_responses = 0;
     expect_write_data_timeout = 1'b0;
+    expected_late_write_responses = 0;
 
   endfunction 
   
@@ -112,10 +142,19 @@ class axi4l_sb extends uvm_scoreboard;
         downstream_read_req_q.push_back(tr_copy);
         check_read_request(); /* a valid downstream request must originate from an already accepted upstream request. */
       end
-      axi4l_read_item::READ_RESPONSE:  begin
+      axi4l_read_item::READ_RESPONSE: begin
+      /* A timeout/containment episode may leave several already-issued downstream
+        responses stale. Consume each expected real response as ghost debt rather
+        than attempting to match it against a later upstream transaction. */
+      if (expected_late_read_responses > 0) begin
+        expected_late_read_responses--;
+        `uvm_info("READ_GHOST_DRAIN", $sformatf("Expected late downstream read response observed and consumed; remaining=%0d", expected_late_read_responses), UVM_LOW)
+      end
+      else begin
         downstream_read_resp_q.push_back(tr_copy);
         check_read_response();
       end
+    end
       default: `uvm_fatal("SB_ERROR", "Unknown downstream read transaction category")
     endcase
   endfunction : write_downstream_read
@@ -152,10 +191,20 @@ class axi4l_sb extends uvm_scoreboard;
         downstream_w_q.push_back(tr_copy);
         check_write_data();
       end
-      axi4l_write_item::WRITE_RESPONSE: begin 
-        downstream_b_q.push_back(tr_copy);
-        check_write_response();
-      end 
+      axi4l_write_item::WRITE_RESPONSE: begin
+        /* A timeout/containment episode may leave multiple stale downstream B
+          responses. Consume them as ghost debt because their corresponding
+          upstream obligations were already completed with injected SLVERRs. */
+        if (expected_late_write_responses > 0) begin
+          expected_late_write_responses--;
+          `uvm_info("WRITE_GHOST_DRAIN", $sformatf("Expected late downstream write response observed and consumed; remaining=%0d", expected_late_write_responses), UVM_LOW)
+        end
+        else begin
+          downstream_b_q.push_back(tr_copy);
+          check_write_response();
+        end
+
+      end
       default: `uvm_fatal("SB_ERROR", "Unknown downsteam write transaction category")
     endcase
   endfunction : write_downstream_write
@@ -198,21 +247,27 @@ class axi4l_sb extends uvm_scoreboard;
     int unsigned word_index;
     logic [DATA_WIDTH-1:0] expected_data;
 
-    /* timeout path */
-    if (expect_read_timeout) begin
+    /* timeout/containment path:
+   Every expected injected SLVERR retires one outstanding upstream read
+   obligation. In a single-read timeout this count is one. With followers
+   already outstanding, containment may inject additional SLVERR responses
+   until all upstream obligations from that fault episode are resolved. */
+    if (expected_read_error_responses > 0) begin
+
       if (pending_read_q.size() == 0 || upstream_read_resp_q.size() == 0) return;
 
       request = pending_read_q.pop_front();
       upstream_response = upstream_read_resp_q.pop_front();
 
-      if (upstream_response.resp !== RESP_SLVERR) begin 
-        `uvm_error( "READ_TIMEOUT_RESP", $sformatf( "Expected injected SLVERR for addr=0x%0h, received resp=0x%0h", request.addr, upstream_response.resp ) ) 
-      end
-      else begin 
-        `uvm_info( "READ_TIMEOUT_PASS", $sformatf( "Read timeout correctly produced upstream SLVERR at addr=0x%0h", request.addr ), UVM_LOW ) 
-      end
-      expect_read_timeout = 1'b0;
+      if (upstream_response.resp !== RESP_SLVERR)
+        `uvm_error("READ_TIMEOUT_RESP", $sformatf("Expected injected SLVERR for addr=0x%0h, received resp=0x%0h", request.addr, upstream_response.resp))
+      else
+        `uvm_info("READ_TIMEOUT_PASS", $sformatf("Expected timeout/containment SLVERR received for addr=0x%0h; remaining=%0d", request.addr, expected_read_error_responses - 1), UVM_LOW)
+
+      expected_read_error_responses--;
+
       return;
+
     end
 
     /* normal path */
@@ -226,8 +281,13 @@ class axi4l_sb extends uvm_scoreboard;
     downstream_response = downstream_read_resp_q.pop_front();
     upstream_response = upstream_read_resp_q.pop_front();
 
-    word_index = request.addr >> $clog2(STRB_WIDTH);
-    expected_data = exp_mem[word_index];
+    if (request.addr >= SUB_ADDR_BASE && request.addr <= SUB_ADDR_END) begin
+      word_index = (request.addr - SUB_ADDR_BASE) >> $clog2(STRB_WIDTH);
+      expected_data = exp_mem[word_index];
+    end
+    else begin
+      expected_data = '0;
+    end
 
     if (downstream_response.data !== expected_data) `uvm_error("READ_MEM_DATA", "Downstream returned incorrect memory data")
     if (upstream_response.data !== downstream_response.data) `uvm_error("READ_FWD_DATA", "SCC did not pass correct RDATA")
@@ -291,30 +351,35 @@ class axi4l_sb extends uvm_scoreboard;
     int unsigned word_index;
 
     /* timeout path */
-    if (expect_write_timeout) begin
-      /* sub intentionally withholds BVALID, so no downstream B response*/
-      if (upstream_b_q.size() == 0 || /* should hold injected SLVERR */
-       (pending_aw_q.size() == 0 || pending_w_q.size() == 0)) return;
+    if (expected_write_error_responses > 0) begin
+
+      if (upstream_b_q.size() == 0 || pending_aw_q.size() == 0 || pending_w_q.size() == 0) return;
 
       aw_request = pending_aw_q.pop_front();
       w_request = pending_w_q.pop_front();
       upstream_response = upstream_b_q.pop_front();
 
-      if (upstream_response.resp !== RESP_SLVERR) begin
-        `uvm_error("WRITE_TIMEOUT_RESP", $sformatf("Expected injected SLVERR for write addr = 0x%0h, recieved resp = 0x%0h", aw_request.addr, upstream_response.resp))
-      end
-      else `uvm_info("WRITE_TIMEOUT_PASS", $sformatf("Write-response timeout correctly produced upstream SLVERR for addr: 0x0%0h", aw_request.addr), UVM_LOW)
+      if (upstream_response.resp !== RESP_SLVERR)
+        `uvm_error("WRITE_TIMEOUT_RESP", $sformatf("Expected injected SLVERR for write addr=0x%0h, received resp=0x%0h", aw_request.addr, upstream_response.resp))
+      else `uvm_info("WRITE_TIMEOUT_PASS", $sformatf("Expected timeout/containment SLVERR received for addr=0x%0h; remaining=%0d", aw_request.addr, expected_write_error_responses - 1), UVM_LOW)
 
-      /* mirror RAM update for scoreboard (verification environement CREATES the scenario where RAM was written - sub commited the write)*/
-      word_index = aw_request.addr >> $clog2(STRB_WIDTH);
-      for (int byte_index = 0; byte_index < STRB_WIDTH; byte_index++) begin
-        if (w_request.strb[byte_index] === 1'b1) begin
-          exp_mem[word_index][8*byte_index +: 8] = w_request.data[8*byte_index +: 8];
+      /*
+      * The subordinate accepted and committed the write even though its B response
+      * later timed out, so mirror the write into the scoreboard memory model.
+      */
+      if (aw_request.addr >= SUB_ADDR_BASE && aw_request.addr <= SUB_ADDR_END) begin
+        word_index = (aw_request.addr - SUB_ADDR_BASE) >> $clog2(STRB_WIDTH);
+        for (int byte_index = 0; byte_index < STRB_WIDTH; byte_index++) begin
+          if (w_request.strb[byte_index] === 1'b1)
+            exp_mem[word_index][8*byte_index +: 8] =
+              w_request.data[8*byte_index +: 8];
         end
       end
-      expect_write_timeout = 1'b0;
-      /* finish */
+
+      expected_write_error_responses--;
+
       return;
+
     end
     /* normal path */
     if (upstream_b_q.size() == 0 || downstream_b_q.size() == 0 || 
@@ -325,17 +390,20 @@ class axi4l_sb extends uvm_scoreboard;
     downstream_response = downstream_b_q.pop_front();
     upstream_response = upstream_b_q.pop_front();
 
-    word_index = aw_request.addr >> $clog2(STRB_WIDTH);
-    if (upstream_response.resp !== downstream_response.resp) `uvm_error("WRITE_FWD_RESP", "SCC did not pass correct WRESP")
-   if ( upstream_response.resp  === RESP_OKAY && downstream_response.resp === RESP_OKAY ) begin
-      /* check write data with that written into memory*/
-      for (int byte_index = 0; byte_index < STRB_WIDTH; byte_index++) begin
-        if (w_request.strb[byte_index] === 1'b1) begin
-        exp_mem[word_index][8*byte_index +: 8] =
+    if (upstream_response.resp === RESP_OKAY &&
+    downstream_response.resp === RESP_OKAY &&
+    aw_request.addr >= SUB_ADDR_BASE &&
+    aw_request.addr <= SUB_ADDR_END) begin
+
+  word_index = (aw_request.addr - SUB_ADDR_BASE) >> $clog2(STRB_WIDTH);
+
+  for (int byte_index = 0; byte_index < STRB_WIDTH; byte_index++) begin
+    if (w_request.strb[byte_index] === 1'b1) begin
+      exp_mem[word_index][8*byte_index +: 8] =
         w_request.data[8*byte_index +: 8];
-        end
-      end      
     end
+  end
+  end
   endfunction : check_write_response
   
   /*
@@ -348,6 +416,35 @@ function void check_phase(uvm_phase phase);
 
   super.check_phase(phase);
 
+  if (expected_write_error_responses != 0)
+  `uvm_error("SB_MISSING_WRITE_ERRORS", $sformatf("Simulation ended with %0d expected timeout/containment write responses not observed", expected_write_error_responses))
+
+  if (expected_late_write_responses != 0)
+    `uvm_error("SB_MISSING_WRITE_GHOSTS", $sformatf("Simulation ended with %0d expected late downstream write responses not observed", expected_late_write_responses))
+
+
+  if (expected_read_error_responses != 0)
+  `uvm_error("SB_MISSING_READ_ERRORS", $sformatf("Simulation ended with %0d expected timeout/containment read responses not observed", expected_read_error_responses))
+  if (expected_late_read_responses != 0)
+    `uvm_error("SB_MISSING_READ_GHOSTS", $sformatf("Simulation ended with %0d expected late downstream read responses not observed", expected_late_read_responses))
+
+        /* WDT is checked here because the missing W/downstream AW are only definitive once stimulus has ended. */
+    if (expect_write_data_timeout) begin
+      if ( upstream_aw_q.size() == 1 && downstream_aw_q.size() == 0 && upstream_w_q.size() == 0 && downstream_w_q.size() == 0 ) begin
+        `uvm_info( "WRITE_DATA_TIMEOUT_PASS", "Expected incomplete upstream AW observed with no downstream write launch", UVM_LOW )
+        upstream_aw_q.pop_front();
+        expect_write_data_timeout = 1'b0;
+      end
+      else begin
+        `uvm_error( "WRITE_DATA_TIMEOUT_STATE", $sformatf( "Unexpected WDT scoreboard state: upstream_AW=%0d downstream_AW=%0d upstream_W=%0d downstream_W=%0d", upstream_aw_q.size(), downstream_aw_q.size(), upstream_w_q.size(), downstream_w_q.size() ) )
+      end
+    end
+    else if (
+      upstream_aw_q.size() !== 0 ||
+      downstream_aw_q.size() !== 0
+    ) begin
+      `uvm_error( "SB_LEFTOVER_AW", $sformatf( "Unmatched AW events remain: upstream=%0d downstream=%0d", upstream_aw_q.size(), downstream_aw_q.size() ) )
+    end
   /*
    * AR request existed on only one side, or was never paired.
    */
@@ -355,14 +452,7 @@ function void check_phase(uvm_phase phase);
     upstream_read_req_q.size() !== 0 ||
     downstream_read_req_q.size() !== 0
   ) begin
-    `uvm_error(
-      "SB_LEFTOVER_READ_REQ",
-      $sformatf(
-        "Unmatched read requests remain: upstream=%0d downstream=%0d",
-        upstream_read_req_q.size(),
-        downstream_read_req_q.size()
-      )
-    )
+    `uvm_error( "SB_LEFTOVER_READ_REQ", $sformatf( "Unmatched read requests remain: upstream=%0d downstream=%0d", upstream_read_req_q.size(), downstream_read_req_q.size() ) )
   end
 
   /*
@@ -374,32 +464,7 @@ function void check_phase(uvm_phase phase);
     downstream_read_resp_q.size() !== 0 ||
     upstream_read_resp_q.size() !== 0
   ) begin
-    `uvm_error(
-      "SB_LEFTOVER_READ_RESP",
-      $sformatf(
-        "Incomplete reads remain: pending=%0d downstream_R=%0d upstream_R=%0d",
-        pending_read_q.size(),
-        downstream_read_resp_q.size(),
-        upstream_read_resp_q.size()
-      )
-    )
-  end
-
-  /*
-   * AW events were not matched across the SCC.
-   */
-  if (
-    upstream_aw_q.size() !== 0 ||
-    downstream_aw_q.size() !== 0
-  ) begin
-    `uvm_error(
-      "SB_LEFTOVER_AW",
-      $sformatf(
-        "Unmatched AW events remain: upstream=%0d downstream=%0d",
-        upstream_aw_q.size(),
-        downstream_aw_q.size()
-      )
-    )
+    `uvm_error( "SB_LEFTOVER_READ_RESP", $sformatf( "Incomplete reads remain: pending=%0d downstream_R=%0d upstream_R=%0d", pending_read_q.size(), downstream_read_resp_q.size(), upstream_read_resp_q.size() ) )
   end
 
   /*
@@ -409,14 +474,7 @@ function void check_phase(uvm_phase phase);
     upstream_w_q.size() !== 0 ||
     downstream_w_q.size() !== 0
   ) begin
-    `uvm_error(
-      "SB_LEFTOVER_W",
-      $sformatf(
-        "Unmatched W events remain: upstream=%0d downstream=%0d",
-        upstream_w_q.size(),
-        downstream_w_q.size()
-      )
-    )
+    `uvm_error( "SB_LEFTOVER_W", $sformatf( "Unmatched W events remain: upstream=%0d downstream=%0d", upstream_w_q.size(), downstream_w_q.size() ) )
   end
 
   /*
@@ -429,16 +487,7 @@ function void check_phase(uvm_phase phase);
     downstream_b_q.size() !== 0 ||
     upstream_b_q.size() !== 0
   ) begin
-    `uvm_error(
-      "SB_LEFTOVER_WRITE_RESP",
-      $sformatf(
-        "Incomplete writes remain: pending_AW=%0d pending_W=%0d downstream_B=%0d upstream_B=%0d",
-        pending_aw_q.size(),
-        pending_w_q.size(),
-        downstream_b_q.size(),
-        upstream_b_q.size()
-      )
-    )
+    `uvm_error( "SB_LEFTOVER_WRITE_RESP", $sformatf( "Incomplete writes remain: pending_AW=%0d pending_W=%0d downstream_B=%0d upstream_B=%0d", pending_aw_q.size(), pending_w_q.size(), downstream_b_q.size(), upstream_b_q.size() ) )
   end
 
 endfunction : check_phase

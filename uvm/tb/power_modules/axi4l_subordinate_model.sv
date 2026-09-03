@@ -6,7 +6,7 @@ module axi4l_subordinate_model (
 
   import a4lite_pkg::*;
 
-  localparam int MEM_WORDS = 256;
+  localparam int MEM_WORDS = 16384;
   localparam int READ_DELAY = 4;
   localparam int WRITE_DELAY = 4;
 
@@ -24,17 +24,27 @@ module axi4l_subordinate_model (
       {s.arready, s.rvalid, s.r, read_count} <= '0;
     end else begin
       s.arready <= !s.rvalid && (read_count == 0);
+
       /* Accept read request and prepare response */
       if (s.arvalid && s.arready) begin
+        $display("[SUB_MODEL] AR handshake @ %0t addr=%h", $time, s.ar.addr);
         read_count <= READ_DELAY;
-        s.r.data <= mem[s.ar.addr[9:2]];
+
+        if ((s.ar.addr >= SUB_ADDR_BASE) &&
+            (s.ar.addr <= SUB_ADDR_END))
+          s.r.data <= mem[(s.ar.addr - SUB_ADDR_BASE) >> 2];
+        else
+          s.r.data <= '0;
+
         s.r.resp <= RESP_OKAY;
       end else if (read_count > 1) begin
         read_count <= read_count - 1;
       end else if (read_count == 1) begin
+        $display("[SUB_MODEL] asserting RVALID @ %0t", $time);
         read_count <= 0;
         s.rvalid <= 1;
       end
+
       /* Hold RVALID until response is accepted */
       if (s.rvalid && s.rready)
         s.rvalid <= 0;
@@ -65,9 +75,14 @@ module axi4l_subordinate_model (
       /* Complete write after both AW and W are received */
       if (aw_pending && w_pending && write_count == 0 && !s.bvalid) begin
         write_count <= WRITE_DELAY;
-        for (i = 0; i < STRB_WIDTH; i++)
-          if (wstrb_q[i])
-            mem[awaddr_q[9:2]][8*i +: 8] <= wdata_q[8*i +: 8];
+
+        if ((awaddr_q >= SUB_ADDR_BASE) &&
+            (awaddr_q <= SUB_ADDR_END)) begin
+          for (i = 0; i < STRB_WIDTH; i++)
+            if (wstrb_q[i])
+              mem[(awaddr_q - SUB_ADDR_BASE) >> 2][8*i +: 8]
+                <= wdata_q[8*i +: 8];
+        end
       end else if (write_count > 1) begin
         write_count <= write_count - 1;
       end else if (write_count == 1) begin

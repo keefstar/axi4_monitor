@@ -19,7 +19,7 @@ class axi4l_write_item extends uvm_sequence_item;
   rand logic[DATA_WIDTH - 1:0] data; /* randomize data; manager is choosing what to send*/
   rand logic[STRB_WIDTH - 1:0] strb; /* should this be rand?*/
   /* B (response)*/
-  axi_resp_e resp;
+  rand axi_resp_e resp;
   
   rand int unsigned aw_delay; /* how many cycles to wait before manager asserts aw_valid*/
   rand int unsigned w_delay; /* how many cycles to wait before manager asserts w_valid*/
@@ -35,15 +35,25 @@ class axi4l_write_item extends uvm_sequence_item;
     strb != '0;
   }
   /* delay constraints */
-  constraint default_delay_c {
-    aw_delay inside {[0:5]};
-    w_delay inside {[0:5]};
-    bready_delay inside {[0:5]};
+  constraint manager_delay_c {
+  aw_delay inside {[0:5]};
+  w_delay inside {[0:5]};
+  bready_delay inside {[0:5]};
+  }
+
+  constraint subordinate_delay_c {
     awready_delay inside {[0:5]};
     wready_delay inside {[0:5]};
     bvalid_delay inside {[0:5]};
   }
 
+  constraint legal_write_resp_c {
+  resp inside {RESP_OKAY, RESP_SLVERR, RESP_DECERR};
+  }
+
+  constraint default_write_resp_c {
+    soft resp == RESP_OKAY;
+  }
   /* FAULT CONTROL FIELDS */
   rand bit suppress_bvalid; 
   constraint normal_write_behvaiour_c{
@@ -56,28 +66,54 @@ class axi4l_write_item extends uvm_sequence_item;
     soft suppress_wvalid == 1'b0;
   }
 
+  bit late_wvalid_after_timeout;
+  bit late_bvalid_after_timeout;
+
   /*
   Manager sequence role configuration.
   */
   function void configure_for_manager();
-    awready_delay.rand_mode(0);
-    wready_delay.rand_mode(0);
-    bvalid_delay.rand_mode(0);
+
+  /* manager does not generate subordinate-side timing */
+  awready_delay.rand_mode(0);
+  wready_delay.rand_mode(0);
+  bvalid_delay.rand_mode(0);
+  subordinate_delay_c.constraint_mode(0);
+
+  /* manager observes BRESP; does not generate it */
+  resp = RESP_OKAY;
+  resp.rand_mode(0);
+  legal_write_resp_c.constraint_mode(0);
+  default_write_resp_c.constraint_mode(0);
+
+  /* manager does not control subordinate B response suppression */
+  suppress_bvalid.rand_mode(0);
+  normal_write_behvaiour_c.constraint_mode(0);
+
   endfunction : configure_for_manager
 
   /*
   Subordinate sequence role configuration.
   */
-  function void configure_for_subordinate();
+    function void configure_for_subordinate();
+
+    /* subordinate observes write request fields; does not generate them */
     addr.rand_mode(0);
     prot.rand_mode(0);
     data.rand_mode(0);
     strb.rand_mode(0);
+
     aw_delay.rand_mode(0);
     w_delay.rand_mode(0);
     bready_delay.rand_mode(0);
+
     nonzero_strb_c.constraint_mode(0);
+    manager_delay_c.constraint_mode(0);
+
+    /* subordinate does not control manager WVALID suppression */
     suppress_wvalid.rand_mode(0);
+    normal_aw_pass_c.constraint_mode(0);
+
   endfunction : configure_for_subordinate
 
   /* UVM factory macros */
