@@ -1,0 +1,29 @@
+<Command name="schRTLInfo"  delimiter="."  >
+<RTLBlock >
+<RTLInfo   name="mode_0"  type="2"  fileName="./rtl2/tp_lvl.sv"  >
+    <Seg beginLine="69"  endLine="77"  />
+  </RTLInfo>
+ <Instance name="tb_top.dut"  />
+</RTLBlock>
+<RTLBlock >
+<RTLInfo   name="wr_state_1"  type="2"  fileName="./rtl2/wr_queue.sv"  >
+    <Seg beginLine="201"  endLine="218"  />
+  </RTLInfo>
+ <RTLInfo   name="wpair_state_2"  type="2"  fileName="./rtl2/wr_queue.sv"  >
+    <Seg beginLine="128"  endLine="142"  />
+  </RTLInfo>
+ <Instance name="tb_top.dut.u_wr"  />
+</RTLBlock>
+<RTLBlock >
+<RTLInfo   name="user_verbosity_3"  type="2"  fileName="/CMC/tools/synopsys/vcs_vW-2024.09-SP1/vcs/W-2024.09-SP1/etc/uvm-1.2/verdi/uvm_custom_install_verdi_recorder.sv"  >
+    <Seg beginLine="47"  endLine="197"  />
+  </RTLInfo>
+ <Instance name="uvm_custom_install_verdi_recording"  />
+</RTLBlock>
+<RTLBlock >
+<RTLInfo   name="rd_state_4"  type="2"  fileName="./rtl2/rd_queue.sv"  >
+    <Seg beginLine="110"  endLine="128"  />
+  </RTLInfo>
+ <Instance name="tb_top.dut.u_rd"  />
+</RTLBlock>
+ </Command>
