@@ -1,23 +1,25 @@
-# === General HDL / Simulation ===
-*.log
-*.vcd
-*.vpd
-*.key
+# GENERAL TEMPORARY FILES
+
 *.bak
 *~
-#vsim.wlf
-#transcript
+.DS_Store
 
-# === Icarus Verilog & Verilator ===
+# GENERAL HDL / SIMULATION OUTPUT
+
+*.vcd
+*.vpd
+*.wlf
+transcript
+
+# ICARUS VERILOG / VERILATOR
+
 a.out
 *.vvp
 obj_dir/
 
-# === Xilinx Vivado ===
-# It is better to ignore the entire project folder and use TCL scripts to rebuild
-# rather than committing the .xpr and massive /runs directories.
+# XILINX VIVADO GENERATED FILES
+
 *.jou
-*.log
 *.str
 .Xil/
 *.runs/
@@ -28,13 +30,14 @@ obj_dir/
 *.sim/
 *.cache/
 
-# === Intel Quartus ===
+# INTEL QUARTUS GENERATED FILES
+
 db/
 incremental_db/
 simulation/
 greybox_tmp/
 hc_output/
-*.rpt
+
 *.summary
 *.done
 *.qws
@@ -43,22 +46,50 @@ hc_output/
 *.sof
 *.jdi
 
-# === Common Tool Artifacts ===
-work/
-INCA_libs/
-csrc/
-simv*
-ucli.key
-DVEfiles/
+# SYNOPSYS VCS GENERATED FILES
 
-# Cadence Xcelium generated files
+simv
+simv.daidir/
+csrc/
+DVEfiles/
+*.vdb/
+ucli.key
+vc_hdrs.h
+
+# CADENCE XCELIUM GENERATED FILES
+
 xcelium.d/
+xcelium.shm/
+xrun.d/
+INCA_libs/
+
 xrun.history
 xrun.log
 xrun.key
-xrun.d/
-INCA_libs/
+
 waves.shm/
 *.shm/
+
+# MODELSIM / QUESTA GENERATED FILES
+
+work/
+vsim.wlf
+transcript
+*.cr.mti
+
+# GENERIC TOOL-GENERATED LOG / REPORT / KEY FILES
+
 *.log
+*.rpt
 *.key
+
+# THESIS EVIDENCE — ALWAYS TRACK
+
+!regression_logs_ieee/
+!regression_logs_ieee/**
+
+!regression_logs_upf_ieee/
+!regression_logs_upf_ieee/**
+
+!reports/
+!reports/**

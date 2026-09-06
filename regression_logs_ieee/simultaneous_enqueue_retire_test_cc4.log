@@ -1,0 +1,359 @@
+TOOL:	xrun	25.09-s001: Started on Aug 30, 2026 at 23:19:34 PDT
+TOOL:	xrun(64)	25.09-s001: Started on Aug 30, 2026 at 23:19:34 PDT
+xrun(64): 25.09-s001: (c) Copyright 1995-2025 Cadence Design Systems, Inc.
+Loading snapshot worklib.axi4l_subordinate_wrapper:sv .................... Done
+SVSEED default: 1
+xcelium> source /CMC/tools/cadence/XCELIUMMAIN25.09.001_lnx86/tools/xcelium/files/xmsimrc
+xcelium> source /CMC/tools/cadence/XCELIUMMAIN25.09.001_lnx86/tools/methodology/UVM/CDNS-IEEE-20/additions/sv/files/tcl/uvm_sim.tcl
+xcelium> run
+UVM_INFO /CMC/tools/cadence/XCELIUMMAIN25.09.001_lnx86/tools/methodology/UVM/CDNS-IEEE-20/sv/src/base/uvm_root.svh(458) @ 0: reporter [UVM/RELNOTES] 
+  ***********       IMPORTANT RELEASE NOTES         ************
+
+  This implementation of the UVM Library deviates from the 1800.2-2020
+  standard.  See the DEVIATIONS.md file contained in the release
+  for more details.
+
+----------------------------------------------------------------
+Accellera:1800.2-2020:UVM:2.0
+
+All copyright owners for this kit are listed in NOTICE.txt
+All Rights Reserved Worldwide
+----------------------------------------------------------------
+
+      (Specify +UVM_NO_RELNOTES to turn off this notice)
+
+UVM_INFO @ 0: reporter [RNTST] Running test simultaneous_enqueue_retire_test_cc4...
+UVM_INFO ./uvm/tb/unit_tests/base_test.sv(20) @ 0: uvm_test_top [BASE_CFG] Configuring downstream_mode=UVM_ACTIVE
+UVM_INFO ./uvm/axi4l_uvc/axi4l_subordinate_agent.sv(45) @ 0: uvm_test_top.env.downstream_agent [SUB_AGENT_BUILD] Subordinate agent sees is_active=UVM_ACTIVE
+UVM_INFO /CMC/tools/cadence/XCELIUMMAIN25.09.001_lnx86/tools/methodology/UVM/CDNS-IEEE-20/sv/src/base/uvm_root.svh(653) @ 0: reporter [UVMTOP] UVM testbench topology:
+-------------------------------------------------------------------------------------
+Name                          Type                                   Size  Value     
+-------------------------------------------------------------------------------------
+<unnamed>                     uvm_root                               -     @2678     
+  uvm_test_top                simultaneous_enqueue_retire_test_cc4   -     @3092     
+    env                       axi4l_env                              -     @3347     
+      downstream_agent        axi4l_subordinate_agent                -     @3617     
+        monitor               axi4l_monitor                          -     @3336     
+          read_ap             uvm_analysis_port                      -     @4047     
+          write_ap            uvm_analysis_port                      -     @4082     
+        read_driver           axi4l_read_driver                      -     @4596     
+          rsp_port            uvm_analysis_port                      -     @4703     
+          seq_item_port       uvm_seq_item_pull_port                 -     @4668     
+        read_sequencer        axi4l_read_sequencer                   -     @4146     
+          rsp_export          uvm_analysis_export                    -     @4189     
+          seq_item_export     uvm_seq_item_pull_imp                  -     @4602     
+          arbitration_queue   array                                  0     -         
+          lock_queue          array                                  0     -         
+          num_last_reqs       integral                               32    'd1       
+          num_last_rsps       integral                               32    'd1       
+        write_driver          axi4l_write_driver                     -     @5176     
+          rsp_port            uvm_analysis_port                      -     @5280     
+          seq_item_port       uvm_seq_item_pull_port                 -     @5246     
+        write_sequencer       axi4l_write_sequencer                  -     @4735     
+          rsp_export          uvm_analysis_export                    -     @4777     
+          seq_item_export     uvm_seq_item_pull_imp                  -     @5181     
+          arbitration_queue   array                                  0     -         
+          lock_queue          array                                  0     -         
+          num_last_reqs       integral                               32    'd1       
+          num_last_rsps       integral                               32    'd1       
+      read_protocol_cov       axi4l_read_protocol_coverage           -     @3649     
+        analysis_imp          uvm_analysis_imp                       -     @3686     
+      sb                      axi4l_sb                               -     @3825     
+        downstream_read_imp   uvm_analysis_imp_downstream_read       -     @3909     
+        downstream_write_imp  uvm_analysis_imp_downstream_write      -     @3977     
+        upstream_read_imp     uvm_analysis_imp_upstream_read         -     @3874     
+        upstream_write_imp    uvm_analysis_imp_upstream_write        -     @3943     
+      upstream_agent          axi4l_manager_agent                    -     @3585     
+        monitor               axi4l_monitor                          -     @5367     
+          read_ap             uvm_analysis_port                      -     @5401     
+          write_ap            uvm_analysis_port                      -     @5435     
+        read_driver           axi4l_read_driver                      -     @5905     
+          rsp_port            uvm_analysis_port                      -     @6008     
+          seq_item_port       uvm_seq_item_pull_port                 -     @5974     
+        read_sequencer        axi4l_read_sequencer                   -     @5431     
+          rsp_export          uvm_analysis_export                    -     @5506     
+          seq_item_export     uvm_seq_item_pull_imp                  -     @5910     
+          arbitration_queue   array                                  0     -         
+          lock_queue          array                                  0     -         
+          num_last_reqs       integral                               32    'd1       
+          num_last_rsps       integral                               32    'd1       
+        write_driver          axi4l_write_driver                     -     @6479     
+          rsp_port            uvm_analysis_port                      -     @6582     
+          seq_item_port       uvm_seq_item_pull_port                 -     @6548     
+        write_sequencer       axi4l_write_sequencer                  -     @6039     
+          rsp_export          uvm_analysis_export                    -     @6080     
+          seq_item_export     uvm_seq_item_pull_imp                  -     @6484     
+          arbitration_queue   array                                  0     -         
+          lock_queue          array                                  0     -         
+          num_last_reqs       integral                               32    'd1       
+          num_last_rsps       integral                               32    'd1       
+        is_active             uvm_active_passive_enum                1     UVM_ACTIVE
+      write_protocol_cov      axi4l_write_protocol_coverage          -     @3681     
+        downstream_write_imp  uvm_analysis_imp_cov_downstream_write  -     @3793     
+        upstream_write_imp    uvm_analysis_imp_cov_upstream_write    -     @3758     
+-------------------------------------------------------------------------------------
+UVM_INFO ./uvm/tb/unit_tests/coverage_tests/simultaneous_enqueue_retire_test_cc4.sv(221) @ 0: uvm_test_top [CC_04] Starting simultaneous read-queue enqueue/retire coverage closure
+UVM_INFO ./uvm/axi4l_uvc/sequences/axi4l_read_seq.sv(16) @ 0: uvm_test_top.env.upstream_agent.read_sequencer@@manager_read_seq0 [cc4_manager_read_seq] Upstream AXI4-Lite Read Sequence
+UVM_INFO ./uvm/axi4l_uvc/sequences/axi4l_read_seq.sv(50) @ 0: uvm_test_top.env.downstream_agent.read_sequencer@@subordinate_read_seq0 [cc4_subordinate_read_seq] Downstream AXI4-Lite Read Sequence
+UVM_INFO ./uvm/tb/coverage/axi4l_read_protocol_coverage.sv(86) @ 65: uvm_test_top.env.read_protocol_cov [READ_COVERAGE] Sampled role=AXI4L_SUBORDINATE kind=READ_REQUEST addr=0x40000a00 prot=000
+UVM_INFO ./uvm/axi4l_uvc/axi4l_read_driver.sv(182) @ 65: uvm_test_top.env.downstream_agent.read_driver [SUB_RD_PIPE] Pipelined AR accepted for addr=0x40000a00
+UVM_INFO ./uvm/tb/coverage/axi4l_read_protocol_coverage.sv(86) @ 65: uvm_test_top.env.read_protocol_cov [READ_COVERAGE] Sampled role=AXI4L_MANAGER kind=READ_REQUEST addr=0x40000a00 prot=000
+UVM_INFO ./uvm/axi4l_uvc/axi4l_read_driver.sv(103) @ 65: uvm_test_top.env.upstream_agent.read_driver [MGR_RD_PIPE] Pipelined AR accepted for addr=0x40000a00
+UVM_INFO ./uvm/axi4l_uvc/sequences/axi4l_read_seq.sv(50) @ 65: uvm_test_top.env.downstream_agent.read_sequencer@@subordinate_read_seq1 [cc4_subordinate_read_seq] Downstream AXI4-Lite Read Sequence
+UVM_INFO ./uvm/axi4l_uvc/sequences/axi4l_read_seq.sv(16) @ 65: uvm_test_top.env.upstream_agent.read_sequencer@@manager_read_seq1 [cc4_manager_read_seq] Upstream AXI4-Lite Read Sequence
+UVM_INFO ./uvm/tb/coverage/axi4l_read_protocol_coverage.sv(86) @ 265: uvm_test_top.env.read_protocol_cov [READ_COVERAGE] Sampled role=AXI4L_SUBORDINATE kind=READ_REQUEST addr=0x40000a00 prot=000
+UVM_INFO ./uvm/axi4l_uvc/axi4l_read_driver.sv(182) @ 265: uvm_test_top.env.downstream_agent.read_driver [SUB_RD_PIPE] Pipelined AR accepted for addr=0x40000a00
+UVM_INFO ./uvm/tb/coverage/axi4l_read_protocol_coverage.sv(86) @ 265: uvm_test_top.env.read_protocol_cov [READ_COVERAGE] Sampled role=AXI4L_MANAGER kind=READ_REQUEST addr=0x40000a00 prot=000
+UVM_INFO ./uvm/axi4l_uvc/axi4l_read_driver.sv(103) @ 265: uvm_test_top.env.upstream_agent.read_driver [MGR_RD_PIPE] Pipelined AR accepted for addr=0x40000a00
+UVM_INFO ./uvm/axi4l_uvc/sequences/axi4l_read_seq.sv(50) @ 265: uvm_test_top.env.downstream_agent.read_sequencer@@subordinate_read_seq2 [cc4_subordinate_read_seq] Downstream AXI4-Lite Read Sequence
+UVM_INFO ./uvm/axi4l_uvc/sequences/axi4l_read_seq.sv(16) @ 265: uvm_test_top.env.upstream_agent.read_sequencer@@manager_read_seq2 [cc4_manager_read_seq] Upstream AXI4-Lite Read Sequence
+SVA_COVER: QUEUE-01 multiple outstanding reads exercised, outst_cnt=2
+UVM_INFO ./uvm/tb/coverage/axi4l_read_protocol_coverage.sv(116) @ 275: uvm_test_top.env.read_protocol_cov [READ_COVERAGE] Sampled role=AXI4L_SUBORDINATE kind=READ_RESPONSE data=0x0 resp=RESP_OKAY
+UVM_INFO ./uvm/axi4l_uvc/axi4l_read_driver.sv(227) @ 275: uvm_test_top.env.downstream_agent.read_driver [SUB_RD_PIPE] Pipelined R completed for addr=0x40000a00 data=0x0 resp=0
+UVM_INFO ./uvm/tb/coverage/axi4l_read_protocol_coverage.sv(116) @ 275: uvm_test_top.env.read_protocol_cov [READ_COVERAGE] Sampled role=AXI4L_MANAGER kind=READ_RESPONSE data=0x0 resp=RESP_OKAY
+UVM_INFO ./uvm/axi4l_uvc/axi4l_read_driver.sv(138) @ 275: uvm_test_top.env.upstream_agent.read_driver [MGR_RD_PIPE] Pipelined R response accepted: data=0x0 resp=0
+UVM_INFO ./uvm/tb/coverage/axi4l_read_protocol_coverage.sv(86) @ 475: uvm_test_top.env.read_protocol_cov [READ_COVERAGE] Sampled role=AXI4L_SUBORDINATE kind=READ_REQUEST addr=0x40000a00 prot=000
+UVM_INFO ./uvm/axi4l_uvc/axi4l_read_driver.sv(182) @ 475: uvm_test_top.env.downstream_agent.read_driver [SUB_RD_PIPE] Pipelined AR accepted for addr=0x40000a00
+UVM_INFO ./uvm/tb/coverage/axi4l_read_protocol_coverage.sv(86) @ 475: uvm_test_top.env.read_protocol_cov [READ_COVERAGE] Sampled role=AXI4L_MANAGER kind=READ_REQUEST addr=0x40000a00 prot=000
+UVM_INFO ./uvm/axi4l_uvc/axi4l_read_driver.sv(103) @ 475: uvm_test_top.env.upstream_agent.read_driver [MGR_RD_PIPE] Pipelined AR accepted for addr=0x40000a00
+UVM_INFO ./uvm/axi4l_uvc/sequences/axi4l_read_seq.sv(50) @ 475: uvm_test_top.env.downstream_agent.read_sequencer@@subordinate_read_seq3 [cc4_subordinate_read_seq] Downstream AXI4-Lite Read Sequence
+UVM_INFO ./uvm/axi4l_uvc/sequences/axi4l_read_seq.sv(16) @ 475: uvm_test_top.env.upstream_agent.read_sequencer@@manager_read_seq3 [cc4_manager_read_seq] Upstream AXI4-Lite Read Sequence
+UVM_INFO ./uvm/tb/coverage/axi4l_read_protocol_coverage.sv(116) @ 485: uvm_test_top.env.read_protocol_cov [READ_COVERAGE] Sampled role=AXI4L_SUBORDINATE kind=READ_RESPONSE data=0x0 resp=RESP_OKAY
+UVM_INFO ./uvm/axi4l_uvc/axi4l_read_driver.sv(227) @ 485: uvm_test_top.env.downstream_agent.read_driver [SUB_RD_PIPE] Pipelined R completed for addr=0x40000a00 data=0x0 resp=0
+UVM_INFO ./uvm/tb/coverage/axi4l_read_protocol_coverage.sv(116) @ 485: uvm_test_top.env.read_protocol_cov [READ_COVERAGE] Sampled role=AXI4L_MANAGER kind=READ_RESPONSE data=0x0 resp=RESP_OKAY
+UVM_INFO ./uvm/axi4l_uvc/axi4l_read_driver.sv(138) @ 485: uvm_test_top.env.upstream_agent.read_driver [MGR_RD_PIPE] Pipelined R response accepted: data=0x0 resp=0
+UVM_INFO ./uvm/tb/coverage/axi4l_read_protocol_coverage.sv(86) @ 695: uvm_test_top.env.read_protocol_cov [READ_COVERAGE] Sampled role=AXI4L_SUBORDINATE kind=READ_REQUEST addr=0x40000a00 prot=000
+UVM_INFO ./uvm/tb/coverage/axi4l_read_protocol_coverage.sv(116) @ 695: uvm_test_top.env.read_protocol_cov [READ_COVERAGE] Sampled role=AXI4L_SUBORDINATE kind=READ_RESPONSE data=0x0 resp=RESP_OKAY
+UVM_INFO ./uvm/axi4l_uvc/axi4l_read_driver.sv(227) @ 695: uvm_test_top.env.downstream_agent.read_driver [SUB_RD_PIPE] Pipelined R completed for addr=0x40000a00 data=0x0 resp=0
+UVM_INFO ./uvm/axi4l_uvc/axi4l_read_driver.sv(182) @ 695: uvm_test_top.env.downstream_agent.read_driver [SUB_RD_PIPE] Pipelined AR accepted for addr=0x40000a00
+UVM_INFO ./uvm/tb/coverage/axi4l_read_protocol_coverage.sv(86) @ 695: uvm_test_top.env.read_protocol_cov [READ_COVERAGE] Sampled role=AXI4L_MANAGER kind=READ_REQUEST addr=0x40000a00 prot=000
+UVM_INFO ./uvm/tb/coverage/axi4l_read_protocol_coverage.sv(116) @ 695: uvm_test_top.env.read_protocol_cov [READ_COVERAGE] Sampled role=AXI4L_MANAGER kind=READ_RESPONSE data=0x0 resp=RESP_OKAY
+UVM_INFO ./uvm/axi4l_uvc/axi4l_read_driver.sv(138) @ 695: uvm_test_top.env.upstream_agent.read_driver [MGR_RD_PIPE] Pipelined R response accepted: data=0x0 resp=0
+UVM_INFO ./uvm/axi4l_uvc/axi4l_read_driver.sv(103) @ 695: uvm_test_top.env.upstream_agent.read_driver [MGR_RD_PIPE] Pipelined AR accepted for addr=0x40000a00
+UVM_INFO ./uvm/tb/coverage/axi4l_read_protocol_coverage.sv(116) @ 905: uvm_test_top.env.read_protocol_cov [READ_COVERAGE] Sampled role=AXI4L_SUBORDINATE kind=READ_RESPONSE data=0x0 resp=RESP_OKAY
+UVM_INFO ./uvm/axi4l_uvc/axi4l_read_driver.sv(227) @ 905: uvm_test_top.env.downstream_agent.read_driver [SUB_RD_PIPE] Pipelined R completed for addr=0x40000a00 data=0x0 resp=0
+UVM_INFO ./uvm/tb/coverage/axi4l_read_protocol_coverage.sv(116) @ 905: uvm_test_top.env.read_protocol_cov [READ_COVERAGE] Sampled role=AXI4L_MANAGER kind=READ_RESPONSE data=0x0 resp=RESP_OKAY
+UVM_INFO ./uvm/axi4l_uvc/axi4l_read_driver.sv(138) @ 905: uvm_test_top.env.upstream_agent.read_driver [MGR_RD_PIPE] Pipelined R response accepted: data=0x0 resp=0
+UVM_INFO ./uvm/tb/unit_tests/coverage_tests/simultaneous_enqueue_retire_test_cc4.sv(253) @ 935: uvm_test_top [CC_04] Starting simultaneous write-queue enqueue/retire coverage closure
+UVM_INFO ./uvm/axi4l_uvc/sequences/axi4l_write_seq.sv(15) @ 935: uvm_test_top.env.upstream_agent.write_sequencer@@manager_write_seq0 [cc4_manager_write_seq] Upstream AXI4-Lite write Sequence
+UVM_INFO ./uvm/axi4l_uvc/sequences/axi4l_write_seq.sv(51) @ 935: uvm_test_top.env.downstream_agent.write_sequencer@@subordinate_write_seq0 [cc4_subordinate_write_seq] Downstream AXI4-Lite write Sequence
+WDT04_DEBUG: WVALID arrived with sampled w_timer=0, TIMEOUT_CYCLES=256
+SVA_COVER: PROT-06 downstream AW/W launched together when delayed W became available
+UVM_INFO ./uvm/axi4l_uvc/axi4l_write_driver.sv(219) @ 965: uvm_test_top.env.downstream_agent.write_driver [SUB_WR_PIPE] Pipelined AW/W pair accepted: addr=0x40000b00 data=0x11111111
+UVM_INFO ./uvm/axi4l_uvc/axi4l_write_driver.sv(126) @ 965: uvm_test_top.env.upstream_agent.write_driver [MGR_WR_PIPE] Pipelined AW/W pair accepted: addr=0x40000b00 data=0x11111111
+UVM_INFO ./uvm/axi4l_uvc/sequences/axi4l_write_seq.sv(51) @ 965: uvm_test_top.env.downstream_agent.write_sequencer@@subordinate_write_seq1 [cc4_subordinate_write_seq] Downstream AXI4-Lite write Sequence
+UVM_INFO ./uvm/axi4l_uvc/sequences/axi4l_write_seq.sv(15) @ 965: uvm_test_top.env.upstream_agent.write_sequencer@@manager_write_seq1 [cc4_manager_write_seq] Upstream AXI4-Lite write Sequence
+WRT06_DEBUG: BVALID arrived with sampled b_timer=20, TIMEOUT_CYCLES=256
+UVM_INFO ./uvm/axi4l_uvc/axi4l_write_driver.sv(248) @ 1175: uvm_test_top.env.downstream_agent.write_driver [SUB_WR_PIPE] Pipelined B response completed: addr=0x40000b00 resp=x
+UVM_INFO ./uvm/axi4l_uvc/axi4l_write_driver.sv(219) @ 1175: uvm_test_top.env.downstream_agent.write_driver [SUB_WR_PIPE] Pipelined AW/W pair accepted: addr=0x40000b10 data=0x22222222
+UVM_INFO ./uvm/axi4l_uvc/axi4l_write_driver.sv(144) @ 1175: uvm_test_top.env.upstream_agent.write_driver [MGR_WR_PIPE] Pipelined B response accepted: resp=x
+UVM_INFO ./uvm/axi4l_uvc/axi4l_write_driver.sv(126) @ 1175: uvm_test_top.env.upstream_agent.write_driver [MGR_WR_PIPE] Pipelined AW/W pair accepted: addr=0x40000b10 data=0x22222222
+UVM_INFO ./uvm/axi4l_uvc/sequences/axi4l_write_seq.sv(51) @ 1175: uvm_test_top.env.downstream_agent.write_sequencer@@subordinate_write_seq2 [cc4_subordinate_write_seq] Downstream AXI4-Lite write Sequence
+UVM_INFO ./uvm/axi4l_uvc/sequences/axi4l_write_seq.sv(15) @ 1175: uvm_test_top.env.upstream_agent.write_sequencer@@manager_write_seq2 [cc4_manager_write_seq] Upstream AXI4-Lite write Sequence
+UVM_INFO ./uvm/axi4l_uvc/axi4l_write_driver.sv(248) @ 1385: uvm_test_top.env.downstream_agent.write_driver [SUB_WR_PIPE] Pipelined B response completed: addr=0x40000b10 resp=x
+UVM_INFO ./uvm/axi4l_uvc/axi4l_write_driver.sv(144) @ 1385: uvm_test_top.env.upstream_agent.write_driver [MGR_WR_PIPE] Pipelined B response accepted: resp=x
+UVM_INFO ./uvm/axi4l_uvc/axi4l_write_driver.sv(219) @ 1395: uvm_test_top.env.downstream_agent.write_driver [SUB_WR_PIPE] Pipelined AW/W pair accepted: addr=0x40000b20 data=0x33333333
+UVM_INFO ./uvm/axi4l_uvc/axi4l_write_driver.sv(126) @ 1395: uvm_test_top.env.upstream_agent.write_driver [MGR_WR_PIPE] Pipelined AW/W pair accepted: addr=0x40000b20 data=0x33333333
+UVM_INFO ./uvm/axi4l_uvc/sequences/axi4l_write_seq.sv(51) @ 1395: uvm_test_top.env.downstream_agent.write_sequencer@@subordinate_write_seq3 [cc4_subordinate_write_seq] Downstream AXI4-Lite write Sequence
+UVM_INFO ./uvm/axi4l_uvc/sequences/axi4l_write_seq.sv(15) @ 1395: uvm_test_top.env.upstream_agent.write_sequencer@@manager_write_seq3 [cc4_manager_write_seq] Upstream AXI4-Lite write Sequence
+UVM_INFO ./uvm/axi4l_uvc/axi4l_write_driver.sv(248) @ 1605: uvm_test_top.env.downstream_agent.write_driver [SUB_WR_PIPE] Pipelined B response completed: addr=0x40000b20 resp=x
+UVM_INFO ./uvm/axi4l_uvc/axi4l_write_driver.sv(144) @ 1605: uvm_test_top.env.upstream_agent.write_driver [MGR_WR_PIPE] Pipelined B response accepted: resp=x
+UVM_INFO ./uvm/axi4l_uvc/axi4l_write_driver.sv(219) @ 1625: uvm_test_top.env.downstream_agent.write_driver [SUB_WR_PIPE] Pipelined AW/W pair accepted: addr=0x40000b30 data=0x44444444
+UVM_INFO ./uvm/axi4l_uvc/axi4l_write_driver.sv(126) @ 1625: uvm_test_top.env.upstream_agent.write_driver [MGR_WR_PIPE] Pipelined AW/W pair accepted: addr=0x40000b30 data=0x44444444
+UVM_INFO ./uvm/axi4l_uvc/axi4l_write_driver.sv(248) @ 1835: uvm_test_top.env.downstream_agent.write_driver [SUB_WR_PIPE] Pipelined B response completed: addr=0x40000b30 resp=x
+UVM_INFO ./uvm/axi4l_uvc/axi4l_write_driver.sv(144) @ 1835: uvm_test_top.env.upstream_agent.write_driver [MGR_WR_PIPE] Pipelined B response accepted: resp=x
+UVM_INFO ./uvm/tb/unit_tests/coverage_tests/simultaneous_enqueue_retire_test_cc4.sv(285) @ 1865: uvm_test_top [CC_04] Simultaneous enqueue/retire coverage-closure stimulus completed
+COV_HIT READ_PROTOCOL ADDR_SUBORDINATE_REGION
+COV_HIT READ_PROTOCOL CROSS_ROLE_MANAGER_KIND_REQUEST
+COV_HIT READ_PROTOCOL CROSS_ROLE_MANAGER_KIND_RESPONSE
+COV_HIT READ_PROTOCOL CROSS_ROLE_MANAGER_PROT_000
+COV_HIT READ_PROTOCOL CROSS_ROLE_MANAGER_RESP_OKAY
+COV_HIT READ_PROTOCOL CROSS_ROLE_SUBORDINATE_KIND_REQUEST
+COV_HIT READ_PROTOCOL CROSS_ROLE_SUBORDINATE_KIND_RESPONSE
+COV_HIT READ_PROTOCOL CROSS_ROLE_SUBORDINATE_PROT_000
+COV_HIT READ_PROTOCOL CROSS_ROLE_SUBORDINATE_RESP_OKAY
+COV_HIT READ_PROTOCOL KIND_REQUEST
+COV_HIT READ_PROTOCOL KIND_RESPONSE
+COV_HIT READ_PROTOCOL PROT_000
+COV_HIT READ_PROTOCOL RESP_OKAY
+COV_HIT READ_PROTOCOL ROLE_MANAGER
+COV_HIT READ_PROTOCOL ROLE_SUBORDINATE
+UVM_INFO ./uvm/tb/coverage/axi4l_read_protocol_coverage.sv(191) @ 1965: uvm_test_top.env.read_protocol_cov [READ_COVERAGE_SUMMARY] AXI4-Lite read protocol coverage:
+  Overall role/kind/address/protection/response coverage = 61.46%
+  Role coverage                 = 100.00%
+  Request/response coverage     = 100.00%
+  ARPROT coverage               = 12.50%
+  Address-region coverage       = 100.00%
+  Response coverage             = 33.33%
+  Role x kind coverage          = 100.00%
+  Role x protection coverage    = 12.50%
+  Role x response coverage      = 33.33%
+COV_HIT WRITE_PROTOCOL ADDR_SUB_REGION
+COV_HIT WRITE_PROTOCOL CROSS_ROLE_MANAGER_KIND_AW
+COV_HIT WRITE_PROTOCOL CROSS_ROLE_MANAGER_KIND_B
+COV_HIT WRITE_PROTOCOL CROSS_ROLE_MANAGER_KIND_W
+COV_HIT WRITE_PROTOCOL CROSS_ROLE_MANAGER_PROT_000
+COV_HIT WRITE_PROTOCOL CROSS_ROLE_MANAGER_STRB_1111
+COV_HIT WRITE_PROTOCOL CROSS_ROLE_SUBORDINATE_KIND_AW
+COV_HIT WRITE_PROTOCOL CROSS_ROLE_SUBORDINATE_KIND_B
+COV_HIT WRITE_PROTOCOL CROSS_ROLE_SUBORDINATE_KIND_W
+COV_HIT WRITE_PROTOCOL CROSS_ROLE_SUBORDINATE_PROT_000
+COV_HIT WRITE_PROTOCOL CROSS_ROLE_SUBORDINATE_STRB_1111
+COV_HIT WRITE_PROTOCOL KIND_AW
+COV_HIT WRITE_PROTOCOL KIND_B
+COV_HIT WRITE_PROTOCOL KIND_W
+COV_HIT WRITE_PROTOCOL PROT_000
+COV_HIT WRITE_PROTOCOL ROLE_MANAGER
+COV_HIT WRITE_PROTOCOL ROLE_SUBORDINATE
+COV_HIT WRITE_PROTOCOL STRB_1111
+UVM_INFO ./uvm/tb/coverage/axi4l_write_protocol_coverage.sv(291) @ 1965: uvm_test_top.env.write_protocol_cov [WRITE_COVERAGE_SUMMARY] AXI4-Lite write protocol coverage:
+  Overall coverage              = 37.08%
+  Role coverage                 = 100.00%
+  AW/W/B kind coverage          = 100.00%
+  Address-region coverage       = 33.33%
+  AWPROT coverage               = 12.50%
+  WSTRB coverage                = 6.25%
+  BRESP coverage                = 0.00%
+  Role x kind coverage          = 100.00%
+  Role x protection coverage    = 12.50%
+  Role x strobe coverage        = 6.25%
+  Role x response coverage      = 0.00%
+UVM_INFO /CMC/tools/cadence/XCELIUMMAIN25.09.001_lnx86/tools/methodology/UVM/CDNS-IEEE-20/sv/src/base/uvm_report_catcher.svh(666) @ 1965: reporter [UVM/REPORT/CATCHER] 
+--- UVM Report catcher Summary ---
+
+
+Number of demoted UVM_FATAL reports  :    0
+Number of demoted UVM_ERROR reports  :    0
+Number of demoted UVM_WARNING reports:    0
+Number of caught UVM_FATAL reports   :    0
+Number of caught UVM_ERROR reports   :    0
+Number of caught UVM_WARNING reports :    0
+
+UVM_INFO /CMC/tools/cadence/XCELIUMMAIN25.09.001_lnx86/tools/methodology/UVM/CDNS-IEEE-20/sv/src/base/uvm_report_server.svh(915) @ 1965: reporter [UVM/REPORT/SERVER] 
+--- UVM Report Summary ---
+
+** Report counts by severity
+UVM_INFO :   75
+UVM_WARNING :    0
+UVM_ERROR :    0
+UVM_FATAL :    0
+** Report counts by id
+[BASE_CFG]     1
+[CC_04]     3
+[MGR_RD_PIPE]     8
+[MGR_WR_PIPE]     8
+[READ_COVERAGE]    16
+[READ_COVERAGE_SUMMARY]     1
+[RNTST]     1
+[SUB_AGENT_BUILD]     1
+[SUB_RD_PIPE]     8
+[SUB_WR_PIPE]     8
+[UVM/RELNOTES]     1
+[UVM/REPORT/CATCHER]     1
+[UVMTOP]     1
+[WRITE_COVERAGE_SUMMARY]     1
+[cc4_manager_read_seq]     4
+[cc4_manager_write_seq]     4
+[cc4_subordinate_read_seq]     4
+[cc4_subordinate_write_seq]     4
+
+COV_HIT RECOVERY ACK_NO
+COV_HIT RECOVERY CROSS_MODE_NORMAL_IRQ_LOW
+COV_HIT RECOVERY CROSS_MODE_NORMAL_QUIESCENT_NO
+COV_HIT RECOVERY CROSS_MODE_NORMAL_QUIESCENT_YES
+COV_HIT RECOVERY EPOCH_CLEAR_NO
+COV_HIT RECOVERY IRQ_LOW
+COV_HIT RECOVERY MODE_NORMAL
+COV_HIT RECOVERY QUIESCENT_NO
+COV_HIT RECOVERY QUIESCENT_YES
+RECOVERY_COVERAGE_SUMMARY
+Recovery-state coverage = 41.67%
+Mode/state coverage = 16.67%
+Upstream-quiescence coverage = 100.00%
+IRQ coverage = 50.00%
+Recovery-ack coverage = 50.00%
+Epoch-clear coverage = 50.00%
+Mode x quiescence coverage = 16.67%
+Mode x IRQ coverage = 8.33%
+Recovered-fault coverage = 0.00%
+Recovered fault-source coverage = 0.00%
+FAULT_COVERAGE_SUMMARY
+Overall fault coverage  = 0.00%
+Fault-source coverage = 0.00%
+Fault enable/mask coverage = 0.00%
+Fault source x enable coverage  0.00%
+COV_HIT WRITE_QUEUE CROSS_OUTST_EMPTY_OP_00
+COV_HIT WRITE_QUEUE CROSS_OUTST_EMPTY_OP_10
+COV_HIT WRITE_QUEUE CROSS_OUTST_ONE_OP_00
+COV_HIT WRITE_QUEUE CROSS_OUTST_ONE_OP_01
+COV_HIT WRITE_QUEUE CROSS_OUTST_ONE_OP_11
+COV_HIT WRITE_QUEUE DRAIN_ZERO
+COV_HIT WRITE_QUEUE FULL_NO
+COV_HIT WRITE_QUEUE GHOST_NO
+COV_HIT WRITE_QUEUE INJECT_NO
+COV_HIT WRITE_QUEUE OP_ENQUEUE_AND_RETIRE
+COV_HIT WRITE_QUEUE OP_ENQUEUE_ONLY
+COV_HIT WRITE_QUEUE OP_IDLE
+COV_HIT WRITE_QUEUE OP_RETIRE_ONLY
+COV_HIT WRITE_QUEUE OUTST_EMPTY
+COV_HIT WRITE_QUEUE OUTST_ONE
+COV_HIT WRITE_QUEUE PAIR_STATE_AW_ONLY
+COV_HIT WRITE_QUEUE PAIR_STATE_IDLE
+WRITE_QUEUE_COVERAGE_SUMMARY
+Overall write-queue coverage = 45.49%
+Outstanding occupancy coverage = 22.22%
+Ghost-drain occupancy coverage = 11.11%
+Queue operation coverage = 100.00%
+Write-pair state coverage = 66.67%
+Timeout injection coverage = 50.00%
+Ghost response coverage = 50.00%
+Full/backpressure coverage = 50.00%
+Occupancy x operation coverage = 13.89%
+COV_HIT READ_QUEUE CROSS_OUTST_EMPTY_OP_00
+COV_HIT READ_QUEUE CROSS_OUTST_EMPTY_OP_10
+COV_HIT READ_QUEUE CROSS_OUTST_ONE_OP_00
+COV_HIT READ_QUEUE CROSS_OUTST_ONE_OP_01
+COV_HIT READ_QUEUE CROSS_OUTST_ONE_OP_10
+COV_HIT READ_QUEUE CROSS_OUTST_ONE_OP_11
+COV_HIT READ_QUEUE CROSS_OUTST_PARTIAL_2_OP_01
+COV_HIT READ_QUEUE DRAIN_ZERO
+COV_HIT READ_QUEUE FULL_NO
+COV_HIT READ_QUEUE GHOST_NO
+COV_HIT READ_QUEUE INJECT_NO
+COV_HIT READ_QUEUE OP_ENQUEUE_AND_RETIRE
+COV_HIT READ_QUEUE OP_ENQUEUE_ONLY
+COV_HIT READ_QUEUE OP_IDLE
+COV_HIT READ_QUEUE OP_RETIRE_ONLY
+COV_HIT READ_QUEUE OUTST_EMPTY
+COV_HIT READ_QUEUE OUTST_ONE
+COV_HIT READ_QUEUE OUTST_PARTIAL_2
+READ_QUEUE_COVERAGE_SUMMARY
+Overall read-queue coverage = 44.84%
+Outstanding occupancy coverage = 33.33%
+Ghost-drain occupancy coverage = 11.11%
+Queue operation coverage = 100.00%
+Timeout injection coverage = 50.00%
+Ghost response coverage = 50.00%
+Full/backpressure coverage = 50.00%
+Occupancy x operation coverage = 19.44%
+Simulation complete via $finish(1) at time 1965 NS + 51
+/CMC/tools/cadence/XCELIUMMAIN25.09.001_lnx86/tools/methodology/UVM/CDNS-IEEE-20/sv/src/base/uvm_root.svh:598 		$finish;
+xcelium> exit
+xmsim: *N,COVCGN: Coverage configuration file command "set_covergroup -new_instance_reporting" can be specified to improve the scoping and naming of covergroup instances. It may be noted that subsequent merging of a coverage database saved with this command and a coverage database saved without this command is not allowed.
+xmsim: *W,CGDEFN: Default name "tb_top.dut.u_rd.read_queue_cov.read_queue_cov_inst" will be generated for covergroup instance "read_queue_cov_inst" as the name of the covergroup instance is not specified explicitly: ./uvm/tb/coverage/axi4l_queue_coverage.sv, 85.
+xmsim: *W,CGDEFN: Default name "tb_top.dut.u_wr.write_queue_cov.write_queue_cov_inst" will be generated for covergroup instance "write_queue_cov_inst" as the name of the covergroup instance is not specified explicitly: ./uvm/tb/coverage/axi4l_queue_coverage.sv, 276.
+xmsim: *W,CGDEFN: Default name "tb_top.dut.fault_cov.fault_cov_inst" will be generated for covergroup instance "fault_cov_inst" as the name of the covergroup instance is not specified explicitly: ./uvm/tb/coverage/axi4l_fault_coverage.sv, 35.
+xmsim: *W,CGDEFN: Default name "tb_top.dut.recovery_cov.recovery_state_cov_inst" will be generated for covergroup instance "recovery_state_cov_inst" as the name of the covergroup instance is not specified explicitly: ./uvm/tb/coverage/axi4l_recovery_coverage.sv, 83.
+xmsim: *W,CGDEFN: Default name "tb_top.dut.recovery_cov.recovered_fault_cov_inst" will be generated for covergroup instance "recovered_fault_cov_inst" as the name of the covergroup instance is not specified explicitly: ./uvm/tb/coverage/axi4l_recovery_coverage.sv, 84.
+
+coverage setup:
+  workdir  :  ./cov_work
+  dutinst  :  axi4l_subordinate_wrapper(axi4l_subordinate_wrapper)
+  dutinst  :  tb_top(tb_top)
+  scope    :  scope
+  testname :  simultaneous_enqueue_retire_test_cc4
+
+coverage files:
+  model(design data) :  ./cov_work/scope/icc_527623b8_5b8036c3.ucm (reused)
+  data               :  ./cov_work/scope/simultaneous_enqueue_retire_test_cc4/icc_527623b8_5b8036c3.ucd
+TOOL:	xrun(64)	25.09-s001: Exiting on Aug 30, 2026 at 23:19:35 PDT  (total: 00:00:01)

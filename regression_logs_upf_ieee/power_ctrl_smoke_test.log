@@ -1,0 +1,189 @@
+TOOL:	xrun	25.09-s001: Started on Aug 29, 2026 at 18:11:47 PDT
+TOOL:	xrun(64)	25.09-s001: Started on Aug 29, 2026 at 18:11:47 PDT
+xrun(64): 25.09-s001: (c) Copyright 1995-2025 Cadence Design Systems, Inc.
+xrun: *W,XUPFEXT: A "UPF" Verilog package was found in your path. There is no need to recompile this package.
+Loading snapshot worklib.tb_top:sv .................... Done
+SVSEED default: 1
+xmsim: *W,SSTERR: [LPS] [tb_top: VDD_IN] At time 0 FS supply net is in a undefined state (./upf/guard_power_4.0.upf:7).
+xmsim: *W,SSTERR: [LPS] [tb_top: VSS_IN] At time 0 FS supply net is in a undefined state (./upf/guard_power_4.0.upf:9).
+xcelium> source /CMC/tools/cadence/XCELIUMMAIN25.09.001_lnx86/tools/xcelium/files/xmsimrc
+xcelium> source /CMC/tools/cadence/XCELIUMMAIN25.09.001_lnx86/tools/methodology/UVM/CDNS-IEEE-20/additions/sv/files/tcl/uvm_sim.tcl
+xcelium> run
+UVM_INFO /CMC/tools/cadence/XCELIUMMAIN25.09.001_lnx86/tools/methodology/UVM/CDNS-IEEE-20/sv/src/base/uvm_root.svh(458) @ 0: reporter [UVM/RELNOTES] 
+  ***********       IMPORTANT RELEASE NOTES         ************
+
+  This implementation of the UVM Library deviates from the 1800.2-2020
+  standard.  See the DEVIATIONS.md file contained in the release
+  for more details.
+
+----------------------------------------------------------------
+Accellera:1800.2-2020:UVM:2.0
+
+All copyright owners for this kit are listed in NOTICE.txt
+All Rights Reserved Worldwide
+----------------------------------------------------------------
+
+      (Specify +UVM_NO_RELNOTES to turn off this notice)
+
+[TB_TOP] After init_power: power=1 iso=0 reset_n=1
+UVM_INFO @ 0: reporter [RNTST] Running test power_ctrl_smoke_test...
+UVM_INFO ./uvm/tb/unit_tests/base_test.sv(20) @ 0: uvm_test_top [BASE_CFG] Configuring downstream_mode=UVM_PASSIVE
+UVM_INFO ./uvm/axi4l_uvc/axi4l_subordinate_agent.sv(45) @ 0: uvm_test_top.env.downstream_agent [SUB_AGENT_BUILD] Subordinate agent sees is_active=UVM_PASSIVE
+UVM_INFO /CMC/tools/cadence/XCELIUMMAIN25.09.001_lnx86/tools/methodology/UVM/CDNS-IEEE-20/sv/src/base/uvm_root.svh(653) @ 0: reporter [UVMTOP] UVM testbench topology:
+-------------------------------------------------------------------------------------
+Name                          Type                                   Size  Value     
+-------------------------------------------------------------------------------------
+<unnamed>                     uvm_root                               -     @2678     
+  uvm_test_top                power_ctrl_smoke_test                  -     @3099     
+    env                       axi4l_env                              -     @3311     
+      downstream_agent        axi4l_subordinate_agent                -     @3388     
+        monitor               axi4l_monitor                          -     @3301     
+          read_ap             uvm_analysis_port                      -     @3820     
+          write_ap            uvm_analysis_port                      -     @3855     
+      read_protocol_cov       axi4l_read_protocol_coverage           -     @3420     
+        analysis_imp          uvm_analysis_imp                       -     @3457     
+      sb                      axi4l_sb                               -     @3596     
+        downstream_read_imp   uvm_analysis_imp_downstream_read       -     @3680     
+        downstream_write_imp  uvm_analysis_imp_downstream_write      -     @3748     
+        upstream_read_imp     uvm_analysis_imp_upstream_read         -     @3645     
+        upstream_write_imp    uvm_analysis_imp_upstream_write        -     @3714     
+      upstream_agent          axi4l_manager_agent                    -     @3356     
+        monitor               axi4l_monitor                          -     @3907     
+          read_ap             uvm_analysis_port                      -     @3941     
+          write_ap            uvm_analysis_port                      -     @3975     
+        read_driver           axi4l_read_driver                      -     @4456     
+          rsp_port            uvm_analysis_port                      -     @4563     
+          seq_item_port       uvm_seq_item_pull_port                 -     @4528     
+        read_sequencer        axi4l_read_sequencer                   -     @4006     
+          rsp_export          uvm_analysis_export                    -     @4049     
+          seq_item_export     uvm_seq_item_pull_imp                  -     @4462     
+          arbitration_queue   array                                  0     -         
+          lock_queue          array                                  0     -         
+          num_last_reqs       integral                               32    'd1       
+          num_last_rsps       integral                               32    'd1       
+        write_driver          axi4l_write_driver                     -     @5036     
+          rsp_port            uvm_analysis_port                      -     @5140     
+          seq_item_port       uvm_seq_item_pull_port                 -     @5106     
+        write_sequencer       axi4l_write_sequencer                  -     @4595     
+          rsp_export          uvm_analysis_export                    -     @4637     
+          seq_item_export     uvm_seq_item_pull_imp                  -     @5041     
+          arbitration_queue   array                                  0     -         
+          lock_queue          array                                  0     -         
+          num_last_reqs       integral                               32    'd1       
+          num_last_rsps       integral                               32    'd1       
+        is_active             uvm_active_passive_enum                1     UVM_ACTIVE
+      write_protocol_cov      axi4l_write_protocol_coverage          -     @3452     
+        downstream_write_imp  uvm_analysis_imp_cov_downstream_write  -     @3564     
+        upstream_write_imp    uvm_analysis_imp_cov_upstream_write    -     @3529     
+-------------------------------------------------------------------------------------
+UVM_INFO ./uvm/tb/unit_tests/upf_tests/power_ctrl_smoke_test.sv(21) @ 0: uvm_test_top [PWR_SMOKE] Initial: power=1 iso=0 reset_n=1
+xmsim: *N,SNTRST: [LPS] Supply net (tb_top: VDD_SW) state at time 0 FS was changed to (ON_1V0) (./upf/guard_power_4.0.upf:31).
+xmsim: *N,SNTRST: [LPS] Supply net (tb_top: VDD_SW) state at time 15 NS was changed to (OFF) (./upf/guard_power_4.0.upf:31).
+UVM_INFO ./uvm/tb/unit_tests/upf_tests/power_ctrl_smoke_test.sv(32) @ 25: uvm_test_top [PWR_SMOKE] After shutdown: power=0 iso=1 reset_n=1
+UVM_INFO ./uvm/tb/coverage/axi4l_read_protocol_coverage.sv(186) @ 25: uvm_test_top.env.read_protocol_cov [READ_COVERAGE_SUMMARY] AXI4-Lite read protocol coverage:
+  Overall role/kind/address/protection/response coverage = 0.00%
+  Role coverage                 = 0.00%
+  Request/response coverage     = 0.00%
+  ARPROT coverage               = 0.00%
+  Address-region coverage       = 0.00%
+  Response coverage             = 0.00%
+  Role x kind coverage          = 0.00%
+  Role x protection coverage    = 0.00%
+  Role x response coverage      = 0.00%
+UVM_INFO ./uvm/tb/coverage/axi4l_write_protocol_coverage.sv(291) @ 25: uvm_test_top.env.write_protocol_cov [WRITE_COVERAGE_SUMMARY] AXI4-Lite write protocol coverage:
+  Overall coverage              = 0.00%
+  Role coverage                 = 0.00%
+  AW/W/B kind coverage          = 0.00%
+  Address-region coverage       = 0.00%
+  AWPROT coverage               = 0.00%
+  WSTRB coverage                = 0.00%
+  BRESP coverage                = 0.00%
+  Role x kind coverage          = 0.00%
+  Role x protection coverage    = 0.00%
+  Role x strobe coverage        = 0.00%
+  Role x response coverage      = 0.00%
+UVM_INFO /CMC/tools/cadence/XCELIUMMAIN25.09.001_lnx86/tools/methodology/UVM/CDNS-IEEE-20/sv/src/base/uvm_report_catcher.svh(666) @ 25: reporter [UVM/REPORT/CATCHER] 
+--- UVM Report catcher Summary ---
+
+
+Number of demoted UVM_FATAL reports  :    0
+Number of demoted UVM_ERROR reports  :    0
+Number of demoted UVM_WARNING reports:    0
+Number of caught UVM_FATAL reports   :    0
+Number of caught UVM_ERROR reports   :    0
+Number of caught UVM_WARNING reports :    0
+
+UVM_INFO /CMC/tools/cadence/XCELIUMMAIN25.09.001_lnx86/tools/methodology/UVM/CDNS-IEEE-20/sv/src/base/uvm_report_server.svh(915) @ 25: reporter [UVM/REPORT/SERVER] 
+--- UVM Report Summary ---
+
+** Report counts by severity
+UVM_INFO :   10
+UVM_WARNING :    0
+UVM_ERROR :    0
+UVM_FATAL :    0
+** Report counts by id
+[BASE_CFG]     1
+[PWR_SMOKE]     2
+[READ_COVERAGE_SUMMARY]     1
+[RNTST]     1
+[SUB_AGENT_BUILD]     1
+[UVM/RELNOTES]     1
+[UVM/REPORT/CATCHER]     1
+[UVMTOP]     1
+[WRITE_COVERAGE_SUMMARY]     1
+
+RECOVERY_COVERAGE_SUMMARY
+Recovery-state coverage = 0.00%
+Mode/state coverage = 0.00%
+Upstream-quiescence coverage = 0.00%
+IRQ coverage = 0.00%
+Recovery-ack coverage = 0.00%
+Epoch-clear coverage = 0.00%
+Mode x quiescence coverage = 0.00%
+Mode x IRQ coverage = 0.00%
+Recovered-fault coverage = 0.00%
+Recovered fault-source coverage = 0.00%
+FAULT_COVERAGE_SUMMARY
+Overall fault coverage  = 0.00%
+Fault-source coverage = 0.00%
+Fault enable/mask coverage = 0.00%
+Fault source x enable coverage  0.00%
+WRITE_QUEUE_COVERAGE_SUMMARY
+Overall write-queue coverage = 0.00%
+Outstanding occupancy coverage = 0.00%
+Ghost-drain occupancy coverage = 0.00%
+Queue operation coverage = 0.00%
+Write-pair state coverage = 0.00%
+Timeout injection coverage = 0.00%
+Ghost response coverage = 0.00%
+Full/backpressure coverage = 0.00%
+Occupancy x operation coverage = 0.00%
+READ_QUEUE_COVERAGE_SUMMARY
+Overall read-queue coverage = 0.00%
+Outstanding occupancy coverage = 0.00%
+Ghost-drain occupancy coverage = 0.00%
+Queue operation coverage = 0.00%
+Timeout injection coverage = 0.00%
+Ghost response coverage = 0.00%
+Full/backpressure coverage = 0.00%
+Occupancy x operation coverage = 0.00%
+Simulation complete via $finish(1) at time 25 NS + 53
+/CMC/tools/cadence/XCELIUMMAIN25.09.001_lnx86/tools/methodology/UVM/CDNS-IEEE-20/sv/src/base/uvm_root.svh:598 		$finish;
+xcelium> exit
+xmsim: *N,COVCGN: Coverage configuration file command "set_covergroup -new_instance_reporting" can be specified to improve the scoping and naming of covergroup instances. It may be noted that subsequent merging of a coverage database saved with this command and a coverage database saved without this command is not allowed.
+xmsim: *W,CGDEFN: Default name "tb_top.dut.u_rd.read_queue_cov.read_queue_cov_inst" will be generated for covergroup instance "read_queue_cov_inst" as the name of the covergroup instance is not specified explicitly: ./uvm/tb/coverage/axi4l_queue_coverage.sv, 85.
+xmsim: *W,CGDEFN: Default name "tb_top.dut.u_wr.write_queue_cov.write_queue_cov_inst" will be generated for covergroup instance "write_queue_cov_inst" as the name of the covergroup instance is not specified explicitly: ./uvm/tb/coverage/axi4l_queue_coverage.sv, 276.
+xmsim: *W,CGDEFN: Default name "tb_top.dut.fault_cov.fault_cov_inst" will be generated for covergroup instance "fault_cov_inst" as the name of the covergroup instance is not specified explicitly: ./uvm/tb/coverage/axi4l_fault_coverage.sv, 35.
+xmsim: *W,CGDEFN: Default name "tb_top.dut.recovery_cov.recovery_state_cov_inst" will be generated for covergroup instance "recovery_state_cov_inst" as the name of the covergroup instance is not specified explicitly: ./uvm/tb/coverage/axi4l_recovery_coverage.sv, 83.
+xmsim: *W,CGDEFN: Default name "tb_top.dut.recovery_cov.recovered_fault_cov_inst" will be generated for covergroup instance "recovered_fault_cov_inst" as the name of the covergroup instance is not specified explicitly: ./uvm/tb/coverage/axi4l_recovery_coverage.sv, 84.
+
+coverage setup:
+  workdir  :  ./cov_work
+  dutinst  :  tb_top(tb_top)
+  scope    :  scope
+  testname :  power_ctrl_smoke_test
+
+coverage files:
+  model(design data) :  ./cov_work/scope/icc_78762bbf_45c54888.ucm (reused)
+  data               :  ./cov_work/scope/power_ctrl_smoke_test/icc_78762bbf_45c54888.ucd
+TOOL:	xrun(64)	25.09-s001: Exiting on Aug 29, 2026 at 18:11:49 PDT  (total: 00:00:02)
