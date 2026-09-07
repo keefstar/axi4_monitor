@@ -30,3 +30,5 @@ The project implements an always-on AXI4-Lite intermediary that detects loss of 
 - **63 / 64 temporal cover properties observed**
 
 ## Synthesis
+Cadence Genus synthesis was performed using the GPDK45 45-nm standard-cell library. Additional sweeps evaluate target frequency, timeout-counter width, and outstanding-transaction depth.
+
