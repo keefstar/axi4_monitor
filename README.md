@@ -11,7 +11,7 @@ The project implements an always-on AXI4-Lite intermediary that detects loss of 
 - `rtl2/` — SCC RTL and shared AXI4-Lite package/interface
 - `uvm/` — UVM verification environment, tests, scoreboard, assertions, and coverage collectors
 - `upf/` — IEEE 1801 power intent and power-aware verification support
-- `sim/` — simulation support files
+- `sim/` — simulation support files (SVAs, cover properties)
 - `regression_logs_ieee/` — conventional regression logs
 - `regression_logs_upf_ieee/` — power-aware regression logs
 - `final_evidence/` — final verification evidence and summaries
