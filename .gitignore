@@ -103,3 +103,4 @@ regression_logs/
 scripts/syn/
 run_vcs.f
 run_xcellium.sh
+run_regression.sh
