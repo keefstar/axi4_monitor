@@ -95,3 +95,11 @@ transcript
 !reports/**
 rtl/
 *.mpf
+chkpts/
+cov_work/
+uvm/notes/
+logs/
+regression_logs/
+scripts/syn/
+run_vcs.f
+run_xcellium.sh
