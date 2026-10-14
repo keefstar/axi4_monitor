@@ -11,7 +11,7 @@ Undergraduate thesis | University of British Columbia, 2026
 
 This repository contains the RTL, verification environment, power intent, regression evidence, and synthesis studies for an **AXI4-Lite Stall-Containment Controller (SCC)** developed as an undergraduate thesis project.
 
-The SCC is a parameterizable, always-on hardware intermediary between an AXI4-Lite manager and subordinate. It tracks outstanding transactions, detects supported loss-of-progress conditions, issues upstream `SLVERR` responses, handles stale downstream responses, and coordinates fault reporting and recovery.
+The SCC is a parameterizable, always-on hardware intermediary between an AXI4-Lite manager and subordinate. It tracks outstanding transactions, detects supported loss-of-progress conditions, issues upstream SLVERR responses, handles stale downstream responses, and coordinates fault reporting and recovery.
 
 **This README is a guide to the implementation and evidence.** The [published thesis](https://open.library.ubc.ca/soa/cIRcle/collections/undergraduateresearch/52966/items/1.0456567) provides the detailed specification, architecture, design rationale, and analysis.
 
